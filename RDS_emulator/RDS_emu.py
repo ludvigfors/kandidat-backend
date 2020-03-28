@@ -48,7 +48,7 @@ drone_thread = DroneThread()
 drone_thread.start()
 
 
-class RDSPubThread(Thread):
+class IMMPubThread(Thread):
     """Simulates RDS Publish link"""
 
     def __init__(self, socket_url):
@@ -78,7 +78,7 @@ class RDSPubThread(Thread):
         return res
 
 
-class RDSSubThread(Thread):
+class IMMSubThread(Thread):
     """Simulates RDS-Subscribe link"""
 
     def __init__(self, socket_url):
@@ -99,12 +99,14 @@ class RDSSubThread(Thread):
         """Gets corner coordinates from client"""
         coordinates = arguments["coordinates"]
         image = session.query(Image).filter_by(coordinates=coordinates).first()
-        drone_thread.add_image_to_queue(image)
-        print("Image added to queue")
-        return {"msg": "Image added to queue"}
+        if image is not None:
+            drone_thread.add_image_to_queue(image)
+            print("Image added to queue")
+            return {"msg": "Image added to queue"}
+        else:
+            return {"msg":"Something went wrong"}
 
-
-class RDSRepThread(Thread):
+class IMMRepThread(Thread):
     """Simulates the Reply-link (INFO-link)"""
     def __init__(self, socket_url):
         super().__init__()
@@ -140,7 +142,7 @@ class RDSRepThread(Thread):
         return res
 
 
-def init():
+def add_test_image():
     """Inserts a test image into the database"""
     coord = {
                 "up_left":
@@ -175,17 +177,7 @@ def init():
 
 
 
-#init()
-RDSPub_socket_url = "tcp://*:5571"
-RDSSub_socket_url = "tcp://*:5570"
-RDSRep_socker_url = "tcp://*:5572"
 
-RDSPub_thread = RDSPubThread(RDSPub_socket_url)
-RDSSub_thread = RDSSubThread(RDSSub_socket_url)
-RDSRep_thread = RDSRepThread(RDSRep_socker_url)
-RDSPub_thread.start()
-RDSSub_thread.start()
-RDSRep_thread.start()
 
 
 

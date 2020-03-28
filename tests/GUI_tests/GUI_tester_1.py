@@ -1,8 +1,10 @@
-import zmq
-import time
-import json
-from threading import Thread
+from IMM.IMM_app import *
+from RDS_emulator.RDS_app import *
 context = zmq.Context()
+
+# Run this the first time the test goes to add the database (images.db)
+# add_test_image()
+
 
 """
 zmq.REQ: Starts sending messages
@@ -68,6 +70,7 @@ class PubThread(Thread):
                 }
         }
 
+        print("Sending add poi")
         self.pub_socket.send_json(json.dumps(req3))
         resp = self.pub_socket.recv()
         print(resp)
