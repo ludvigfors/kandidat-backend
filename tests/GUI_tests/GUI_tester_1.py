@@ -1,9 +1,10 @@
+"""A mock simulating the GUI making requests"""
 from IMM.IMM_app import *
 from RDS_emulator.RDS_app import *
 context = zmq.Context()
 
 # Run this the first time the test goes to add the database (images.db)
-# add_test_image()
+# init_db_and_add_image()
 
 
 """
@@ -74,8 +75,6 @@ class PubThread(Thread):
         self.pub_socket.send_json(json.dumps(req3))
         resp = self.pub_socket.recv()
         # print(resp)
-
-
 
 
 class SubThread(Thread):

@@ -1,4 +1,5 @@
-from IMM.IMM_threads import *
+"""Starts the threads and therefore the IMM application"""
+from IMM.IMM_thread_init import *
 
 fe_sub_thread = GuiSubThread()
 rds_sub_thread = RDSSubThread()

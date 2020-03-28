@@ -142,7 +142,7 @@ class IMMRepThread(Thread):
         return res
 
 
-def add_test_image():
+def init_db_and_add_image():
     """Inserts a test image into the database"""
     coord = {
                 "up_left":
