@@ -8,8 +8,8 @@ context = zmq.Context()
 zmq.REQ: Starts sending messages
 zmq.REP: Starts with receiving messages
 """
-pub_socket_url = "tcp://localhost:4570"
-sub_socket_url = "tcp://localhost:4571"
+pub_socket_url = "tcp://localhost:4571"
+sub_socket_url = "tcp://localhost:4570"
 req_socket_url = "tcp://localhost:4572"
 
 
@@ -28,14 +28,49 @@ class PubThread(Thread):
         # Connect to backend
         req1 = {}
 
-
-
         # Set area
-
+        req2 = {}
 
         # Request point of interest
+        req3 = {
+            "fcn": "request_POI",
+            "arg":
+                {
+                   # "client_id": 1, # Not implemented yet
+                    "prio" : False,
+                    "coordinates" :
+                        {
+                            "up_left":
+                                {
+                                    "lat": 58.123456,
+                                    "long": 16.12345613
+                                },
+                            "up_right":
+                                {
+                                    "lat": 58.123456,
+                                    "long": 16.12345618
+                                },
+                            "down_left":
+                                {
+                                    "lat": 58.123456,
+                                    "long": 16.12345623
+                                },
+                            "down_right":
+                                {"lat": 58.123456,
+                                 "long": 16.12345628
+                                 },
+                            "center":
+                                {
+                                    "lat": 58.123456,
+                                    "long": 16.123456
+                                }
+                        }
+                }
+        }
 
-
+        self.pub_socket.send_json(json.dumps(req3))
+        resp = self.pub_socket.recv()
+        print(resp)
 
 
 class SubThread(Thread):
