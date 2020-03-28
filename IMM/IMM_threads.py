@@ -14,8 +14,8 @@ gui_sub_socket_url = "tcp://*:4571"
 gui_resp_socket_url = "tcp://*:4572"
 
 """
-zmq.REQ: Starts sending messages
-zmq.REP: Starts with receiving messages
+zmq.REQ: Start by sending messages
+zmq.REP: Start by receiving messages
 """
 
 
@@ -31,8 +31,6 @@ class GuiSubThread(Thread):
     def run(self):
         while True:
             request = json.loads(self.gui_sub_socket.recv_json())
-
-            print("Test")
             if request["fcn"] == "request_POI":
                 self.gui_sub_socket.send_json(self.request_poi(request["arg"]))
 
@@ -53,7 +51,7 @@ class GuiSubThread(Thread):
     def send_to_rds(self, args):
         self.RDS_pub_socket.send_json(json.dumps(args))
         resp = self.RDS_pub_socket.recv()
-        print("Response (ack/nack)", resp)
+        # print("Response (ack/nack)", resp)
 
 
 class RDSSubThread(Thread):
@@ -66,19 +64,21 @@ class RDSSubThread(Thread):
 
     def run(self):
         while True:
-            resp = self.RDS_sub_socket.recv_json()
-            print("New message", resp)
-            self.RDS_sub_socket.send_json(json.dumps({"msg":"ack"}))
-
-            # TODO: Save to database here
-
+            new_pic = self.RDS_sub_socket.recv_json()
+            # print("New pic", new_pic)
+            self.RDS_sub_socket.send_json(json.dumps({"msg": "ack"}))
+            self.save_to_database(new_pic)
             self.notify_gui()
 
     def notify_gui(self):
-        req = {"fcn": "new_pic", "arg":{"image_id": 1}}  # This is not final
-        self.gui_pub_socket.send_json(json.dumps(req))
+        msg = {"fcn": "new_pic", "arg":{"image_id": 1}}  # This notify message will change later
+        self.gui_pub_socket.send_json(json.dumps(msg))
         resp = self.gui_pub_socket.recv_json()
-        print("notify gui resp:", resp)
+        # print("notify gui response:", resp)
+
+    def save_to_database(self, new_pic):
+        # TODO: Save new pic to database here
+        pass
 
 
 class ReqRespThread(Thread):
@@ -90,5 +90,57 @@ class ReqRespThread(Thread):
         self.RDS_req_socket.connect(RDS_req_socket_url)
 
     def run(self):
-       pass
+        while True:
+            request = json.loads(self.gui_resp_socket.recv_json())
 
+            if request["fcn"] == "connect":
+                self.gui_resp_socket.send_json(self.connect())
+
+            elif request["fcn"] == "set_area":
+                self.gui_resp_socket.send_json(self.set_area())
+
+            elif request["fcn"] == "get_info":
+                self.gui_resp_socket.send_json(self.get_info())
+
+            elif request["fcn"] == "set_mode":
+                self.gui_resp_socket.send_json(self.set_mode())
+
+            elif request["fcn"] == "clear_que":
+                self.gui_resp_socket.send_json(self.clear_queue())
+
+            elif request["fcn"] == "que_ETA":
+                self.gui_resp_socket.send_json(self.queue_eta())
+
+            elif request["fcn"] == "quit":
+                self.gui_resp_socket.send_json(self.disconnect())
+
+            else:
+                self.gui_resp_socket.send_json(json.dumps({"msg": "nothing happened"}))
+
+    def connect(self):
+        # TODO: Implement this
+        pass
+
+    def set_area(self):
+        # TODO: Implement this
+        pass
+
+    def get_info(self):
+        # TODO: Implement this
+        pass
+
+    def disconnect(self):
+        # TODO: Implement this
+        pass
+
+    def set_mode(self):
+        # TODO: Implement this
+        pass
+
+    def clear_queue(self):
+        # TODO: Implement this
+        pass
+
+    def queue_eta(self):
+        # TODO: Implement this
+        pass

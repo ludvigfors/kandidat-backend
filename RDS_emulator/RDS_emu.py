@@ -22,7 +22,7 @@ class DroneThread(Thread):
         while True:
             if not self.new_image and len(self.image_queue) > 0:
                 self.countdown() # Simulate drone flying to location
-                print("Image arrived")
+                # print("Image arrived")
                 self.new_image = True
 
     def add_image_to_queue(self, image):
@@ -61,7 +61,7 @@ class IMMPubThread(Thread):
             if drone_thread.new_image:
                 self.socket.send_json(self.new_pic(drone_thread.pop_first_image()))
                 response = self.socket.recv_json()
-                print(response)
+                # print(response)
 
     def new_pic(self, image):
         "Called when a new picture is taken, send this to the client that wanted it."
@@ -101,7 +101,7 @@ class IMMSubThread(Thread):
         image = session.query(Image).filter_by(coordinates=coordinates).first()
         if image is not None:
             drone_thread.add_image_to_queue(image)
-            print("Image added to queue")
+            # print("Image added to queue")
             return {"msg": "Image added to queue"}
         else:
             return {"msg":"Something went wrong"}
@@ -138,7 +138,7 @@ class IMMRepThread(Thread):
             "arg": "que_ETA",
             "arg2": str(drone_thread.next_image_eta())
         }
-        print("ETA", res)
+        # print("ETA", res)
         return res
 
 

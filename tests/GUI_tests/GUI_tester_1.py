@@ -70,10 +70,12 @@ class PubThread(Thread):
                 }
         }
 
-        print("Sending add poi")
+        # print("Sending add poi")
         self.pub_socket.send_json(json.dumps(req3))
         resp = self.pub_socket.recv()
-        print(resp)
+        # print(resp)
+
+
 
 
 class SubThread(Thread):
@@ -84,10 +86,12 @@ class SubThread(Thread):
 
     def run(self):
         while True:
-            message = self.sub_socket.recv_json()
-            print("Received message", message)
+            message = json.loads(self.sub_socket.recv_json())
             self.sub_socket.send_json(json.dumps({"msg":"ack"}))
-
+            if message["fcn"] == "new_pic" and "image_id" in message["arg"]:
+                print("Test successful")
+            else:
+                print("Test failed")
             #if message == "notify":
                 # Request image by id
 
