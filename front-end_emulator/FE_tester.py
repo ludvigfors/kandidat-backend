@@ -4,21 +4,30 @@ import json
 from threading import Thread
 context = zmq.Context()
 
+"""
+zmq.REQ: Starts sending messages
+zmq.REP: Starts with receiving messages
+"""
+pub_socket_url = "tcp://localhost:4570"
+sub_socket_url = "tcp://localhost:4571"
+req_socket_url = "tcp://localhost:4572"
+
 
 class PubThread(Thread):
 
     def __init__(self):
         super().__init__()
-        self.client_pub_socket = context.socket(zmq.REQ)
-        self.client_req_socket = context.socket(zmq.REQ)
-        self.client_pub_socket.connect("tcp://localhost:5570")
-        self.client_req_socket.connect("tcp://localhost:5572")
+        self.pub_socket = context.socket(zmq.REQ)
+        self.req_socket = context.socket(zmq.REQ)
+        self.pub_socket.connect(pub_socket_url)
+        self.req_socket.connect(req_socket_url)
 
     def run(self):
-        # Simulating a series of calls
+        # Simulating frontend making a series of calls
 
         # Connect to backend
-        print("Calling add_poi")
+        req1 = {}
+
 
 
         # Set area
@@ -33,7 +42,7 @@ class SubThread(Thread):
     def __init__(self):
         super().__init__()
         self.sub_socket = context.socket(zmq.REP)
-        self.sub_socket.connect("tcp://localhost:5571")
+        self.sub_socket.connect(sub_socket_url)
 
     def run(self):
         while True:
