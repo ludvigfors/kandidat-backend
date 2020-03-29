@@ -1,78 +1,81 @@
-import sqlalchemy as sql
+from sqlalchemy import create_engine
+from sqlalchemy import Column, Table, ForeignKey
+from sqlalchemy import Integer, Float, String
 
-FILE_NAME = "database/database.db"
+from sqlalchemy.orm import sessionmaker
 
-class Database:
-    __FILE_NAME = "database/database.db"
+from sqlalchemy.ext.declarative import declarative_base
 
-    def __init__(self):
-        self.__engine = sql.create_engine('sqlite:///' + FILE_NAME, echo=False)
-        self.__metadata = sql.MetaData(bind=self.__engine)
-        self.__metadata.reflect()
-        self.__verify_tables()
-        
-    def __verify_tables(self):
-        if not self.has_table('sessions'):
-            print("Session table missing, creating table")
-            sql.Table('sessions', self.__metadata,
-                sql.Column('id',            sql.Integer, primary_key=True),
-                sql.Column('start_time',    sql.Integer, nullable=False),
-                sql.Column('end_time',      sql.Integer, nullable=True),
-                sql.Column('drone_mode',    sql.Integer, nullable=False))
-        if not self.has_table('clients'):
-            print('Clients table missing, creating table')
-            sql.Table('clients', self.__metadata,
-                sql.Column('id',                    sql.Integer, primary_key=True),
-                sql.Column('session',               sql.Integer, sql.ForeignKey('sessions.id'), nullable=False),
-                sql.Column('up_left_coordinate',    sql.Float),
-                sql.Column('up_right_coordinate',   sql.Float),
-                sql.Column('down_left_coordinate',  sql.Float),
-                sql.Column('down_right_coordinate', sql.Float))
-        if not self.has_table('areas'):
-            print("Areas table missing, creating table")
-            sql.Table('areas', self.__metadata,
-                sql.Column('session',       sql.Integer, sql.ForeignKey('sessions.id'), primary_key=True),
-                sql.Column('no',            sql.Float, primary_key=True),
-                sql.Column('coordinate',    sql.Float, nullable=False))
-        if not self.has_table('images'):
-            print("Images table missing, creating table")
-            sql.Table('images', self.__metadata,
-                sql.Column('id', sql.Integer, primary_key=True),
-                sql.Column('session', sql.Integer, sql.ForeignKey('sessions.id')),
-                sql.Column('time_taken', sql.Integer, nullable=False),
-                sql.Column('width', sql.Integer, nullable=False),
-                sql.Column('height', sql.Integer, nullable=False),
-                sql.Column('type', sql.String, nullable=False),
-                sql.Column('up_left_coordinate',    sql.Float),
-                sql.Column('up_right_coordinate',   sql.Float),
-                sql.Column('down_left_coordinate',  sql.Float),
-                sql.Column('down_right_coordinate', sql.Float),
-                sql.Column('file_name', sql.String, nullable=False))
-        if not self.has_table('prio_images'):
-            print("prio_images table missing, creating table")
-            sql.Table('prio_images', self.__metadata,
-                sql.Column('id', sql.Integer, primary_key=True),
-                sql.Column('session', sql.Integer, sql.ForeignKey('sessions.id'), nullable=False),
-                sql.Column('time_requested', sql.Integer, sql.ForeignKey('sessions.id'), nullable=False),
-                sql.Column('coordinate', sql.Float, nullable=False),
-                sql.Column('status', sql.String, nullable=False),
-                sql.Column('image', sql.Integer, sql.ForeignKey('sessions.id'), nullable=True),
-                sql.Column('eta', sql.Integer, nullable=True))
-        if not self.has_table('drones'):
-            print("drones table missing, creating table")
-            sql.Table('drones', self.__metadata,
-                sql.Column('id', sql.Integer, primary_key=True),
-                sql.Column('session', sql.Integer, sql.ForeignKey('sessions.id')),
-                sql.Column('time_last_updated', sql.Integer),
-                sql.Column('eta', sql.Integer))
-        self.__metadata.create_all()
+file_name = "database/database.db"
 
-    def has_table(self, name):
-        return name in self.__metadata.tables.keys()
+Base = declarative_base()
 
-    def get_table_names(self):
-        return [table.name for table in self.__metadata.sorted_tables]
+class UserSession(Base):
+    __tablename__ = 'sessions'
 
-if __name__ == "__main__":
-    database = Database()
-    print(database.get_table_names())
+    id = Column(Integer, primary_key=True)
+    start_time = Column(Integer, nullable=False)
+    end_time = Column(Integer)
+    drone_mode = Column(String, nullable=False)
+
+
+class Client(Base):
+    __tablename__ = 'clients'
+
+    id = Column(Integer, primary_key=True)
+    session = Column(Integer, ForeignKey('sessions.id'), nullable=False)
+    coordinates = Column(Float)
+
+
+class AreaVertex(Base):
+    __tablename__ = 'areas'
+
+    session = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
+    vertex_no = Column(Integer, primary_key=True)
+    coordinate = Column(Float, nullable=False)
+
+
+class Image(Base):
+    __tablename__ = 'images'
+
+    id = Column(Integer, primary_key=True)
+    sesssion = Column(Integer, ForeignKey('sessions.id'))
+    time_taken = Column(Integer, nullable=False)
+    width = Column(Integer, nullable=False)
+    height = Column(Integer, nullable=False)
+    type = Column(String, nullable=False)
+    coordinates = Column(Float, nullable=False)
+    file_name = Column(String, nullable=False)
+
+
+class PrioImage(Base):
+    __tablename__ = 'prio_images'
+
+    id = Column(Integer, primary_key=True)
+    session = Column(Integer, ForeignKey('sessions.id'))
+    time_requested = Column(Integer, nullable=False)
+    coordinate = Column(Float, nullable=False)
+    status = Column(String, nullable=False)
+    image = Column(Integer, ForeignKey('images.id'), nullable=True)
+    eta = Column(Integer, nullable=True)
+
+
+class Drone(Base):
+    __tablename__ = 'drones'
+
+    id = Column(Integer, primary_key=True)
+    session = Column(Integer, ForeignKey('sessions.id'))
+    last_updated = Column(Integer, nullable=True)
+    eta = Column(Integer, nullable=True)
+
+
+if __name__ == '__main__':
+    engine = create_engine('sqlite:///' + file_name, echo=True)
+    Base.metadata.create_all(engine)
+    
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    sample_session = UserSession(start_time=123, drone_mode='AUTO')
+    session.add(sample_session)
+    session.commit()
