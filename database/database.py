@@ -19,7 +19,8 @@ class UserSession(Base):
     drone_mode = Column(String, nullable=False)
 
     def __repr__(self):
-        return '<UserSession(id={0:6d}, start_time={1}, end_time={2}, drone_mode={3}'.format(self.id, self.start_time, self.end_time, self.drone_mode)
+        return '<UserSession(id={0:6d}, start_time={1}, end_time={2}, drone_mode={3}'.format(
+            self.id, self.start_time, self.end_time, self.drone_mode)
 
 
 class Client(Base):
@@ -30,6 +31,10 @@ class Client(Base):
     coordinates = Column(Float)
 
     session = relationship("UserSession", back_populates="clients")
+
+    def __repr__(self):
+        return '<Client(id={0:6d}, session_id={1:6d}, coordinates={2}'.format(
+            self.id, self.session_id, self.coordinates)
 
 UserSession.clients = relationship("Client", order_by=Client.id, back_populates="session")
 
@@ -43,6 +48,10 @@ class AreaVertex(Base):
 
     session = relationship("UserSession", back_populates="area_vertices")
 
+    def __repr__(self):
+        return '<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}'.format(
+            self.session_id, self.vertex_no, self.coordinate)
+
 UserSession.area_vertices = relationship("AreaVertex", order_by=AreaVertex.vertex_no, back_populates="session")
 
 
@@ -50,7 +59,7 @@ class Image(Base):
     __tablename__ = 'images'
 
     id = Column(Integer, primary_key=True)
-    sesssion_id = Column(Integer, ForeignKey('sessions.id'))
+    session_id = Column(Integer, ForeignKey('sessions.id'))
     time_taken = Column(Integer, nullable=False)
     width = Column(Integer, nullable=False)
     height = Column(Integer, nullable=False)
@@ -59,6 +68,10 @@ class Image(Base):
     file_name = Column(String, nullable=False)
 
     session = relationship("UserSession", back_populates="images")
+
+    def __repr__(self):
+        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, coordinates={6}, file_name={7}'.format(
+            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.coordinates, self.file_name)
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
 
@@ -71,12 +84,18 @@ class PrioImage(Base):
     time_requested = Column(Integer, nullable=False)
     coordinate = Column(Float, nullable=False)
     status = Column(String, nullable=False)
-    image = Column(Integer, ForeignKey('images.id'), nullable=True)
+    image_id = Column(Integer, ForeignKey('images.id'), nullable=True)
     eta = Column(Integer, nullable=True)
 
     session = relationship("UserSession", back_populates="prio_images")
+    image = relationship("Image", back_populates="prio_image")
+
+    def __repr__(self):
+        return '<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}'.format(
+            self.id, self.session_id, self.time_requested, self.coordinate, self.status, self.image_id, self.eta)
 
 UserSession.prio_images = relationship("PrioImage", order_by=PrioImage.id, back_populates="session")
+Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, back_populates="image")
 
 
 class Drone(Base):
