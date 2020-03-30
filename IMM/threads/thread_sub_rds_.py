@@ -4,7 +4,7 @@ import json
 
 
 class RDSSubThread(Thread):
-    """This thread subscribes to the RDS and handles the data (mostly images) sent by the RDS"""
+    """This thread subscribes to the RDS and handles the data (mostly images) received from the RDS"""
     def __init__(self):
         super().__init__()
         self.RDS_sub_socket = context.socket(zmq.REP)

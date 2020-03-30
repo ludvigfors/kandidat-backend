@@ -11,7 +11,6 @@ context = zmq.Context()
 zmq.REQ: Starts sending messages
 zmq.REP: Starts with receiving messages
 """
-pub_socket_url = "tcp://localhost:4571"
 sub_socket_url = "tcp://localhost:4570"
 req_socket_url = "tcp://localhost:4572"
 
@@ -20,9 +19,7 @@ class PubThread(Thread):
 
     def __init__(self):
         super().__init__()
-        self.pub_socket = context.socket(zmq.REQ)
         self.req_socket = context.socket(zmq.REQ)
-        self.pub_socket.connect(pub_socket_url)
         self.req_socket.connect(req_socket_url)
 
     def run(self):
@@ -71,9 +68,9 @@ class PubThread(Thread):
                 }
         }
 
-        # print("Sending add poi")
-        self.pub_socket.send_json(json.dumps(req3))
-        resp = self.pub_socket.recv()
+        print("Sending add poi")
+        self.req_socket.send_json(json.dumps(req3))
+        resp = self.req_socket.recv()
         # print(resp)
 
 
