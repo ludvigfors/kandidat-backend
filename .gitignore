@@ -1,5 +1,7 @@
 RDS_emulator/.linuxvenv
 RDS_emulator/__pycache__
 RDS_emulator/.idea
+IMM/__pycache__
+IMM/threads/__pycache__
 venv
 .idea
