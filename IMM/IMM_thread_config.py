@@ -1,5 +1,4 @@
-"""Initiates the socket urls and starts imports all threads"""
-
+"""Initiates the socket urls"""
 import zmq
 context = zmq.Context()
 
@@ -11,11 +10,5 @@ giu_pub_socket_url = "tcp://*:4570"
 gui_sub_socket_url = "tcp://*:4571"
 gui_resp_socket_url = "tcp://*:4572"
 
-"""
-zmq.REQ: Start by sending messages
-zmq.REP: Start by receiving messages
-"""
 
-from IMM.threads.thread_req_resp import *
-from IMM.threads.thread_sub_gui import *
-from IMM.threads.thread_sub_rds_ import *
+

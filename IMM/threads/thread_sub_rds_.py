@@ -1,4 +1,4 @@
-from IMM.IMM_thread_init import context, zmq, RDS_sub_socket_url, giu_pub_socket_url
+from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url, giu_pub_socket_url
 from threading import Thread
 import json
 
