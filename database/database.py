@@ -121,7 +121,6 @@ class Database:
 __active_databases = {}
 
 def __get_database_instance(file_name):
-    print("Retrieving database", file_name)
     if not file_name in __active_databases.keys():
         __active_databases[file_name] = Database(file_name)
     return __active_databases[file_name]
