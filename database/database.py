@@ -110,17 +110,36 @@ class Drone(Base):
 
 UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates="session")
 
-engine = create_engine('sqlite:///' + DATABASE_FILE_NAME, echo=True)
-Base.metadata.create_all(bind=engine)
-Session = sessionmaker(bind=engine)
+
+class Database:
+    def __init__(self, file_name):
+        self.engine = create_engine('sqlite:///' + file_name, echo=True)
+        Base.metadata.create_all(bind=self.engine)
+        self.Session = sessionmaker(bind=self.engine)
+
+
+__active_databases = {}
+
+def __get_database_instance(file_name):
+    print("Retrieving database", file_name)
+    if not file_name in __active_databases.keys():
+        __active_databases[file_name] = Database(file_name)
+    return __active_databases[file_name]
+
+def get_database():
+    return __get_database_instance(DATABASE_FILE_NAME)
+
+def get_test_database():
+    return __get_database_instance(":memory:")
+
 
 if __name__ == '__main__':
-    session = Session()
+    database = get_test_database()
+    session = database.Session()
 
     sample_session = UserSession(start_time=123, drone_mode='AUTO')
     session.add(sample_session)
     session.commit()
 
-    all_sessions = session.query(UserSession).all()
-    for session in all_sessions:
-        print(session)
+    for user_session in session.query(UserSession).all():
+        print(user_session)
