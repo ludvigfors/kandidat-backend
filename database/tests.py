@@ -1,7 +1,8 @@
 import unittest
 from random import randint, seed
 
-from database import *
+from database import UserSession
+from database import get_test_database
 
 class UserSessionTester(unittest.TestCase):
     
