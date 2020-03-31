@@ -5,3 +5,6 @@ IMM/__pycache__
 IMM/threads/__pycache__
 venv
 .idea
+*.db
+__pycache__
+
