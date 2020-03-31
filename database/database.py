@@ -112,8 +112,8 @@ UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates
 
 
 class Database:
-    def __init__(self, file_name):
-        self.engine = create_engine('sqlite:///' + file_name, echo=True)
+    def __init__(self, file_name, echo=False):
+        self.engine = create_engine('sqlite:///' + file_name, echo=echo)
         Base.metadata.create_all(bind=self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
