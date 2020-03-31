@@ -129,7 +129,7 @@ def get_database():
     return __get_database_instance(DATABASE_FILE_NAME)
 
 def get_test_database():
-    return __get_database_instance(":memory:")
+    return Database(":memory:")
 
 
 if __name__ == '__main__':
