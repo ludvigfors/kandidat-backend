@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine, Column, Integer, String, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-engine = create_engine('sqlite:///images.db', echo=True)
+engine = create_engine('sqlite:///images.db', echo=False)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
 session = Session()
