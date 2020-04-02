@@ -118,7 +118,13 @@ class Database:
         self.__engine = create_engine('sqlite:///' + file_name, echo=echo)
         Base.metadata.create_all(bind=self.__engine)
         self.__session_maker = sessionmaker(bind=self.__engine)
-        self.Session = scoped_session(self.__session_maker)
+        self.__Session = scoped_session(self.__session_maker)
+
+    def get_session(self):
+        return self.__Session()
+
+    def release_session(self):
+        return self.__Session.remove()
 
 
 __active_databases = {}
