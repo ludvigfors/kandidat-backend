@@ -88,7 +88,7 @@ class AreaVertex(Base):
 
     def __repr__(self):
         return '<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}'.format(
-            self.session_id, self.vertex_no, self.coordinate)
+            self.session_id, self.vertex_no, self.coordinate.__repr__())
 
 UserSession.area_vertices = relationship("AreaVertex", order_by=AreaVertex.vertex_no, back_populates="session")
 
@@ -120,8 +120,8 @@ class Image(Base):
     session = relationship("UserSession", back_populates="images")
 
     def __repr__(self):
-        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, coordinates={6}, file_name={7}'.format(
-            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.coordinates, self.file_name)
+        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_name={}'.format(
+            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_name)
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
 
@@ -145,7 +145,7 @@ class PrioImage(Base):
 
     def __repr__(self):
         return '<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}'.format(
-            self.id, self.session_id, self.time_requested, self.coordinate, self.status, self.image_id, self.eta)
+            self.id, self.session_id, self.time_requested, self.coordinate.__repr__(), self.status, self.image_id, self.eta)
 
 UserSession.prio_images = relationship("PrioImage", order_by=PrioImage.id, back_populates="session")
 Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, back_populates="image")
