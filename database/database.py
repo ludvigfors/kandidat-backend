@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from threading import Lock
 
-DATABASE_FILE_NAME = "database/database.db"
+DATABASE_FILE_PATH = "database/database.db"
 
 Base = declarative_base()
 
@@ -115,13 +115,13 @@ class Image(Base):
     up_right = composite(Coordinate, __up_right_x, __up_right_y)
     down_right = composite(Coordinate, __down_right_x, __down_right_y)
     down_left = composite(Coordinate, __down_left_x, __down_left_y)
-    file_name = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
 
     session = relationship("UserSession", back_populates="images")
 
     def __repr__(self):
-        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_name={}'.format(
-            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_name)
+        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
+            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
 
@@ -165,8 +165,8 @@ UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates
 
 
 class Database:
-    def __init__(self, file_name, echo=False):
-        self.__engine = create_engine('sqlite:///' + file_name, echo=echo)
+    def __init__(self, file_path, echo=False):
+        self.__engine = create_engine('sqlite:///' + file_path, echo=echo)
         Base.metadata.create_all(bind=self.__engine)
         self.__session_maker = sessionmaker(bind=self.__engine)
         self.__Session = scoped_session(self.__session_maker)
@@ -181,17 +181,17 @@ class Database:
 __active_databases = {}
 __active_database_mutex = Lock()
 
-def __get_database_instance(file_name):
+def __get_database_instance(file_path):
     # This is a critical section, as multiple instances of the same Database
     # might be created by different threads.
     __active_database_mutex.acquire()
-    if not file_name in __active_databases.keys():
-        __active_databases[file_name] = Database(file_name)
+    if not file_path in __active_databases.keys():
+        __active_databases[file_path] = Database(file_path)
     __active_database_mutex.release()
-    return __active_databases[file_name]
+    return __active_databases[file_path]
 
 def get_database():
-    return __get_database_instance(DATABASE_FILE_NAME)
+    return __get_database_instance(DATABASE_FILE_PATH)
 
 def get_test_database():
     return Database(":memory:")
