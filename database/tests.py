@@ -155,5 +155,44 @@ class ClientTester(unittest.TestCase):
         check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_left=down_left))
         check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_right=down_right))
 
+class SessionRelationTester(unittest.TestCase):
+    def setUp(self):
+        seed(123)   # Avoid flaky tests by using the same seed every time.
+        self.db = get_test_database()
+        self.session = self.db.get_session()
+
+    def tearDown(self):
+        self.db.release_session()
+
+    def testSessionClientRelation(self):
+        session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
+        client = Client(session_id=session.id,
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1))
+        self.session.add(session)
+        self.session.add(client)
+        self.session.commit()
+
+        self.assertTrue(self.session.query(Client).first().session is session,
+            "Wrong session retrieved from client.")
+        self.assertTrue(self.session.query(UserSession).first().clients[0] is client,
+            "Wrong client retrieved from session.")
+        
+        session.clients.append(Client(session_id=session.id,
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1)))
+        self.session.commit()
+
+        self.assertEqual(self.session.query(Client).count(), 2,
+            "Failed to add Client via UserSession.clients.")
+        self.assertEqual(len(self.session.query(UserSession).first().clients), 2,
+            "Failed to retrieve all clients from UserSession.clients.")
+        retrieved_clients = self.session.query(Client).order_by(Client.id).all()
+        self.assertTrue(retrieved_clients[0] is client)
+        self.assertTrue(retrieved_clients[0].session is session)
+        self.assertFalse(retrieved_clients[1] is client)
+        self.assertTrue(retrieved_clients[1].session is session)
+
+
 if __name__ == "__main__":
     unittest.main()
