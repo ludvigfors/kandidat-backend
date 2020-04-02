@@ -79,7 +79,10 @@ class AreaVertex(Base):
 
     session_id = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
     vertex_no = Column(Integer, primary_key=True)
-    coordinate = Column(Float, nullable=False)
+    __coordinate_x = Column(Float, nullable=False)
+    __coordinate_y = Column(Float, nullable=False)
+    
+    coordinate = composite(Coordinate, __coordinate_x, __coordinate_y)
 
     session = relationship("UserSession", back_populates="area_vertices")
 
@@ -99,7 +102,19 @@ class Image(Base):
     width = Column(Integer, nullable=False)
     height = Column(Integer, nullable=False)
     type = Column(String, nullable=False)
-    coordinates = Column(Float, nullable=False)
+    __up_left_x = Column(Float, nullable=False)
+    __up_left_y = Column(Float, nullable=False)
+    __up_right_x = Column(Float, nullable=False)
+    __up_right_y = Column(Float, nullable=False)
+    __down_right_x = Column(Float, nullable=False)
+    __down_right_y = Column(Float, nullable=False)
+    __down_left_x = Column(Float, nullable=False)
+    __down_left_y = Column(Float, nullable=False)
+
+    up_left = composite(Coordinate, __up_left_x, __up_left_y)
+    up_right = composite(Coordinate, __up_right_x, __up_right_y)
+    down_right = composite(Coordinate, __down_right_x, __down_right_y)
+    down_left = composite(Coordinate, __down_left_x, __down_left_y)
     file_name = Column(String, nullable=False)
 
     session = relationship("UserSession", back_populates="images")
@@ -117,11 +132,14 @@ class PrioImage(Base):
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('sessions.id'))
     time_requested = Column(Integer, nullable=False)
-    coordinate = Column(Float, nullable=False)
     status = Column(String, nullable=False)
     image_id = Column(Integer, ForeignKey('images.id'), nullable=True)
     eta = Column(Integer, nullable=True)
-
+    __coordinate_x = Column(Float, nullable=False)
+    __coordinate_y = Column(Float, nullable=False)
+    
+    coordinate = composite(Coordinate, __coordinate_x, __coordinate_y)
+    
     session = relationship("UserSession", back_populates="prio_images")
     image = relationship("Image", back_populates="prio_image")
 
