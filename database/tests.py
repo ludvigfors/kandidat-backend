@@ -8,10 +8,11 @@ class UserSessionTester(unittest.TestCase):
     
     def setUp(self):
         seed(123)
-        self.session = get_test_database().Session()
+        self.db = get_test_database()
+        self.session = self.db.get_session()
 
     def tearDown(self):
-        pass
+        self.db.release_session()
 
     def test_single_entry(self):
         self.session.add(UserSession(start_time=123, drone_mode="AUTO"))
