@@ -1,18 +1,14 @@
 """A mock simulating the GUI making requests"""
-from IMM.IMM_app import *
 from RDS_emulator.RDS_app import *
+from IMM.IMM_app import *
 context = zmq.Context()
 
 # Run this the first time the test goes to add the database (images.db)
-# init_db_and_add_image()
+#init_db_and_add_image()
 
 
-"""
-zmq.REQ: Starts sending messages
-zmq.REP: Starts with receiving messages
-"""
 sub_socket_url = "tcp://localhost:4570"
-req_socket_url = "tcp://localhost:4572"
+req_socket_url = "tcp://localhost:4571"
 
 
 class PubThread(Thread):
@@ -38,34 +34,34 @@ class PubThread(Thread):
                 {
                    # "client_id": 1, # Not implemented yet
                     "prio" : False,
-                    "coordinates" :
-                        {
-                            "up_left":
-                                {
-                                    "lat": 58.123456,
-                                    "long": 16.12345613
-                                },
-                            "up_right":
-                                {
-                                    "lat": 58.123456,
-                                    "long": 16.12345618
-                                },
-                            "down_left":
-                                {
-                                    "lat": 58.123456,
-                                    "long": 16.12345623
-                                },
-                            "down_right":
-                                {"lat": 58.123456,
-                                 "long": 16.12345628
-                                 },
-                            "center":
-                                {
-                                    "lat": 58.123456,
-                                    "long": 16.123456
-                                }
-                        }
-                }
+                    "coordinates" : {
+                "up_left":
+                    {
+                        "lat":59,
+                        "long":16
+             },
+                 "up_right":
+                     {
+                         "lat":58,
+                         "long":16
+                     },
+                 "down_left":
+                     {
+                         "lat":58,
+                         "long":16
+                     },
+                 "down_right":
+                     {"lat":58,
+                      "long":16
+                      },
+                 "center":
+                     {
+                         "lat":58,
+                         "long":16
+                     }
+             }
+
+            }
         }
 
         print("Sending add poi")

@@ -6,11 +6,12 @@ Base = declarative_base()
 Session = sessionmaker(bind=engine)
 session = Session()
 
+
 class Image(Base):
     __tablename__ = "images"
 
     id = Column(Integer, primary_key=True)
-    coordinates = Column(JSON)
+    coordinates = Column(JSON, unique=True)
     image_path = Column(String, unique=True)
 
     def __init__(self, coordinates, image_path):

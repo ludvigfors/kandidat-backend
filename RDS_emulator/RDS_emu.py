@@ -106,6 +106,7 @@ class IMMSubThread(Thread):
         else:
             return {"msg":"Something went wrong"}
 
+
 class IMMRepThread(Thread):
     """Simulates the Reply-link (INFO-link)"""
     def __init__(self, socket_url):
@@ -147,27 +148,27 @@ def init_db_and_add_image():
     coord = {
                 "up_left":
                     {
-                        "lat":58.123456,
-                        "long":16.12345613
+                        "lat":59,
+                        "long":16
              },
                  "up_right":
                      {
-                         "lat":58.123456,
-                         "long":16.12345618
+                         "lat":58,
+                         "long":16
                      },
                  "down_left":
                      {
-                         "lat":58.123456,
-                         "long":16.12345623
+                         "lat":58,
+                         "long":16
                      },
                  "down_right":
-                     {"lat":58.123456,
-                      "long":16.12345628
+                     {"lat":58,
+                      "long":16
                       },
                  "center":
                      {
-                         "lat":58.123456,
-                         "long":16.123456
+                         "lat":58,
+                         "long":16
                      }
              }
     testFilePath = "/home/ludvig/Desktop/RDS_emulator/images/testimage.jpg"
