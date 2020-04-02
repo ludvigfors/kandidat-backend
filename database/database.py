@@ -2,9 +2,11 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy import Integer, Float, String
 
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, scoped_session, relationship
 
 from sqlalchemy.ext.declarative import declarative_base
+
+from threading import Lock
 
 DATABASE_FILE_NAME = "database/database.db"
 
@@ -113,16 +115,22 @@ UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates
 
 class Database:
     def __init__(self, file_name, echo=False):
-        self.engine = create_engine('sqlite:///' + file_name, echo=echo)
-        Base.metadata.create_all(bind=self.engine)
-        self.Session = sessionmaker(bind=self.engine)
+        self.__engine = create_engine('sqlite:///' + file_name, echo=echo)
+        Base.metadata.create_all(bind=self.__engine)
+        self.__session_maker = sessionmaker(bind=self.__engine)
+        self.Session = scoped_session(self.__session_maker)
 
 
 __active_databases = {}
+__active_database_mutex = Lock()
 
 def __get_database_instance(file_name):
+    # This is a critical section, as multiple instances of the same Database
+    # might be created by different threads.
+    __active_database_mutex.acquire()
     if not file_name in __active_databases.keys():
         __active_databases[file_name] = Database(file_name)
+    __active_database_mutex.release()
     return __active_databases[file_name]
 
 def get_database():
