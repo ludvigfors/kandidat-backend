@@ -2,7 +2,8 @@ from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy import Integer, Float, String
 
-from sqlalchemy.orm import sessionmaker, scoped_session, relationship
+from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import composite, relationship
 
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -11,6 +12,26 @@ from threading import Lock
 DATABASE_FILE_NAME = "database/database.db"
 
 Base = declarative_base()
+
+# This class is inspired by the SQLAlchemy tutorial.
+# https://docs.sqlalchemy.org/en/13/orm/composites.html
+class Coordinate:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+    
+    def __composite_values__(self):
+        return self.x, self.y
+
+    def __repr__(self):
+        return "Coordinate(x={}, y={})".format(self.x, self.y)
+
+    def __eq__(self, other):
+        return isinstance(other, Coordinate) and self.x == other.x and self.y == other.y
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 class UserSession(Base):
     __tablename__ = 'sessions'
@@ -30,7 +51,19 @@ class Client(Base):
 
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
-    coordinates = Column(Float)
+    __up_left_x = Column(Float, nullable=False)
+    __up_left_y = Column(Float, nullable=False)
+    __up_right_x = Column(Float, nullable=False)
+    __up_right_y = Column(Float, nullable=False)
+    __down_right_x = Column(Float, nullable=False)
+    __down_right_y = Column(Float, nullable=False)
+    __down_left_x = Column(Float, nullable=False)
+    __down_left_y = Column(Float, nullable=False)
+
+    up_left = composite(Coordinate, __up_left_x, __up_left_y)
+    up_right = composite(Coordinate, __up_right_x, __up_right_y)
+    down_right = composite(Coordinate, __down_right_x, __down_right_y)
+    down_left = composite(Coordinate, __down_left_x, __down_left_y)
 
     session = relationship("UserSession", back_populates="clients")
 
@@ -148,7 +181,7 @@ def get_test_database():
 
 if __name__ == '__main__':
     database = get_test_database()
-    session = database.Session()
+    session = database.get_session()
 
     sample_session = UserSession(start_time=123, drone_mode='AUTO')
     session.add(sample_session)
@@ -156,3 +189,5 @@ if __name__ == '__main__':
 
     for user_session in session.query(UserSession).all():
         print(user_session)
+
+    database.release_session()

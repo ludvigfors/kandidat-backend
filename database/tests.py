@@ -1,13 +1,25 @@
 import unittest
-from random import randint, seed
+from random import randint, uniform, seed
 
-from database import UserSession
+from database import Coordinate
+from database import UserSession, Client
 from database import get_test_database
+
+from sqlalchemy.exc import IntegrityError
+
+class CoordinateTester(unittest.TestCase):
+    def test_equality(self):
+        self.assertEqual(Coordinate(1, 1), Coordinate(1, 1))
+        self.assertEqual(Coordinate(-1, -1), Coordinate(-1, -1))
+        self.assertNotEqual(Coordinate(1, 1), Coordinate(-1, -1))
+        self.assertNotEqual(Coordinate(1, -1), Coordinate(-1, 1))
+        self.assertNotEqual(Coordinate(1, 1), None)
+        self.assertNotEqual(Coordinate(1, 1), self)
 
 class UserSessionTester(unittest.TestCase):
     
     def setUp(self):
-        seed(123)
+        seed(123)   # Avoid flaky tests by using the same seed every time.
         self.db = get_test_database()
         self.session = self.db.get_session()
 
@@ -54,6 +66,94 @@ class UserSessionTester(unittest.TestCase):
             filter(UserSession.end_time != None).all()), 0,
             "Found nonexistant session.")
 
+    def test_not_nullable(self):
+        def check_invalid(session):
+            self.session.add(session)
+            with self.assertRaises(IntegrityError, msg="Nullable constraint not met."):
+                self.session.commit()
+            self.session.rollback()
+
+        check_invalid(UserSession(start_time=123))
+        check_invalid(UserSession(drone_mode="MAN"))
+
+class ClientTester(unittest.TestCase):
+    
+    def setUp(self):
+        self.SESSIONS = 5
+
+        seed(123)   # Avoid flaky tests by using the same seed every time.
+        self.db = get_test_database()
+        self.session = self.db.get_session()
+        for _i in range(self.SESSIONS):
+            self.session.add(UserSession(start_time=randint(100000, 200000),
+                                         end_time=randint(200000, 300000),
+                                         drone_mode="AUTO"))
+        self.session.commit()
+
+    def tearDown(self):
+        self.db.release_session()
+
+    def test_single_entry(self):
+        client = Client(session_id=self.SESSIONS // 2)
+        client.up_left = Coordinate(1, 5)
+        client.up_right = Coordinate(5, 5)
+        client.down_right = Coordinate(5, 1)
+        client.down_left = Coordinate(1, 1)
+        self.session.add(client)
+        self.session.commit()
+        
+        self.assertEqual(len(self.session.query(Client).all()), 1,
+            "Wrong number of entries.")
+        self.assertEqual(self.session.query(Client).first().up_left, Coordinate(1, 5),
+            "Wrong view retrieved.")
+        self.assertEqual(len(self.session.query(Client).filter(Client.up_left == Coordinate(3, 3)).all()), 0,
+            "Failed to filter by nonexistant property.")
+
+    def test_multiple_unique_entries(self):
+        n_clients = 500
+
+        up_left = [Coordinate(uniform(1, 5), uniform(5, 10)) for i in range(n_clients)]
+        up_right = [Coordinate(uniform(5, 10), uniform(5, 10)) for i in range(n_clients)]
+        down_right = [Coordinate(uniform(5, 10), uniform(1, 5)) for i in range(n_clients)]
+        down_left = [Coordinate(uniform(1, 5), uniform(1, 5)) for i in range(n_clients)]
+        sessions = [randint(1, self.SESSIONS) for i in range(n_clients)]
+        clients = [Client(
+            session_id=sessions[i],
+            up_left=up_left[i], up_right=up_right[i],
+            down_right=down_right[i], down_left=down_left[i]
+            ) for i in range(n_clients)]
+        for client in clients:
+            self.session.add(client)
+        self.session.commit()
+
+        clients_in_database = self.session.query(Client).\
+            order_by(Client.id).all()
+        self.assertEqual(len(clients_in_database), n_clients,
+            "Incorrect number of entries saved in database.")
+        for i in range(n_clients):
+            with self.subTest(i=i):
+                self.assertTrue(clients[i] is clients_in_database[i],
+                    "Retrieved session is not the same object as created session.")
+        self.assertEqual(len(self.session.query(Client).\
+            filter(Client.up_left == Coordinate(0, 0)).all()), 0,
+            "Found nonexistant session.")
+
+    def test_not_nullable(self):
+        def check_invalid(client):
+            self.session.add(client)
+            with self.assertRaises(IntegrityError, msg="Nullable constraint not met."):
+                self.session.commit()
+            self.session.rollback()
+
+        up_left = Coordinate(1, 5)
+        up_right = Coordinate(5, 5)
+        down_right = Coordinate(5, 1)
+        down_left = Coordinate(1, 1)
+        check_invalid(Client(up_left=up_left, up_right=up_right, down_right=down_right, down_left=down_left))
+        check_invalid(Client(session_id=1, up_right=up_right, down_right=down_right, down_left=down_left))
+        check_invalid(Client(session_id=1, up_left=up_left, down_right=down_right, down_left=down_left))
+        check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_left=down_left))
+        check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_right=down_right))
 
 if __name__ == "__main__":
     unittest.main()
