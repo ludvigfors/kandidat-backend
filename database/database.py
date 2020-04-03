@@ -112,12 +112,15 @@ class Image(Base):
     __down_right_y = Column(Float, nullable=False)
     __down_left_x = Column(Float, nullable=False)
     __down_left_y = Column(Float, nullable=False)
+    __center_x = Column(Float, nullable=False)
+    __center_y = Column(Float, nullable=False)
+    file_path = Column(String, nullable=False)
 
     up_left = composite(Coordinate, __up_left_x, __up_left_y)
     up_right = composite(Coordinate, __up_right_x, __up_right_y)
     down_right = composite(Coordinate, __down_right_x, __down_right_y)
     down_left = composite(Coordinate, __down_left_x, __down_left_y)
-    file_path = Column(String, nullable=False)
+    center = composite(Coordinate, __center_x, __center_y)
 
     session = relationship("UserSession", back_populates="images")
 
