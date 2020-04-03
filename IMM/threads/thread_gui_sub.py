@@ -21,7 +21,7 @@ class GuiSubThread(Thread):
 
             if request["fcn"] == "connect":
                 self.gui_sub_socket.send_json(self.connect())
-                self.connect()
+
             elif request["fcn"] == "set_area":
                 self.gui_sub_socket.send_json(self.set_area())
 
