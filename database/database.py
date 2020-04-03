@@ -71,6 +71,7 @@ class Client(Base):
         return '<Client(id={0:6d}, session_id={1:6d}, coordinates={2}'.format(
             self.id, self.session_id, self.coordinates)
 
+
 UserSession.clients = relationship("Client", order_by=Client.id, back_populates="session")
 
 
@@ -89,6 +90,7 @@ class AreaVertex(Base):
     def __repr__(self):
         return '<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}'.format(
             self.session_id, self.vertex_no, self.coordinate.__repr__())
+
 
 UserSession.area_vertices = relationship("AreaVertex", order_by=AreaVertex.vertex_no, back_populates="session")
 
@@ -123,6 +125,7 @@ class Image(Base):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
             self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
 
+
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
 
 
@@ -147,6 +150,7 @@ class PrioImage(Base):
         return '<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}'.format(
             self.id, self.session_id, self.time_requested, self.coordinate.__repr__(), self.status, self.image_id, self.eta)
 
+
 UserSession.prio_images = relationship("PrioImage", order_by=PrioImage.id, back_populates="session")
 Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, back_populates="image")
 
@@ -160,6 +164,7 @@ class Drone(Base):
     eta = Column(Integer, nullable=True)
 
     session = relationship("UserSession", back_populates="drones")
+
 
 UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates="session")
 
@@ -190,8 +195,10 @@ def __get_database_instance(file_path):
     __active_database_mutex.release()
     return __active_databases[file_path]
 
+
 def get_database():
     return __get_database_instance(DATABASE_FILE_PATH)
+
 
 def get_test_database():
     return Database(":memory:")
