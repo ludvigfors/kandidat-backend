@@ -52,7 +52,7 @@ class RDSPubThread(Thread):
 
         request_args["coordinates"] = poi["coordinates"]
         request["arg"] = request_args
-        self..RDS_pub_socketsend_json(json.dumps(request))
+        self.RDS_pub_socketsend_json(json.dumps(request))
         resp = self.RDS_pub_socket.recv()
 
     def set_area(self):
