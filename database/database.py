@@ -99,7 +99,7 @@ class Image(Base):
     __tablename__ = 'images'
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey('sessions.id'))
+    session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
     time_taken = Column(Integer, nullable=False)
     width = Column(Integer, nullable=False)
     height = Column(Integer, nullable=False)
