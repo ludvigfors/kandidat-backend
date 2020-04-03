@@ -2,7 +2,7 @@ import unittest
 from random import randint, uniform, seed
 
 from database import Coordinate
-from database import UserSession, Client
+from database import UserSession, Client, AreaVertex, Coordinate
 from database import get_test_database
 
 from sqlalchemy.exc import IntegrityError
@@ -154,6 +154,77 @@ class ClientTester(unittest.TestCase):
         check_invalid(Client(session_id=1, up_left=up_left, down_right=down_right, down_left=down_left))
         check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_left=down_left))
         check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_right=down_right))
+
+class AreaVertexTester(unittest.TestCase):
+    
+    def setUp(self):
+        self.SESSIONS = 5
+
+        seed(123)   # Avoid flaky tests by using the same seed every time.
+        self.db = get_test_database()
+        self.session = self.db.get_session()
+        for _i in range(self.SESSIONS):
+            self.session.add(UserSession(start_time=randint(100000, 200000),
+                                         end_time=randint(200000, 300000),
+                                         drone_mode="AUTO"))
+        self.session.commit()
+
+    def tearDown(self):
+        self.db.release_session()
+
+    def test_single_entry(self):
+        vertex = AreaVertex(session_id=randint(1, self.SESSIONS),
+            vertex_no=1, coordinate=Coordinate(x=1.5, y=0.23))
+        self.session.add(vertex)
+        self.session.commit()
+        
+        self.assertEqual(len(self.session.query(AreaVertex).all()), 1,
+            "Wrong number of entries.")
+        self.assertEqual(self.session.query(AreaVertex).first().coordinate, Coordinate(1.5, 0.23),
+            "Wrong vertex retrieved.")
+        self.assertTrue(self.session.query(AreaVertex).filter(AreaVertex.coordinate == Coordinate(1.5, 0.23)).first() is vertex,
+            "Failed to filter by coordinate.")
+        self.assertEqual(len(self.session.query(AreaVertex).filter(AreaVertex.coordinate == Coordinate(1.5, 1.5)).all()), 0,
+            "Failed to filter by nonexistant property.")
+
+    def test_multiple_unique_entries(self):
+        n_max_vertices = 100
+        n_vertices_for_session = [randint(1, n_max_vertices) for i in range(self.SESSIONS)]
+        coordinates = [[Coordinate(uniform(1, 100), uniform(1, 100)) for i in range(j)] for j in n_vertices_for_session]
+        vertices = [[AreaVertex(session_id=i, vertex_no=j, coordinate=coordinates[i][j]) for j in range(n_vertices_for_session[i])] for i in range(self.SESSIONS)]
+        for session_vertices in vertices:
+            for vertex in session_vertices:
+                self.session.add(vertex)
+        self.session.commit()
+
+        vertices_in_database = self.session.query(AreaVertex).\
+            order_by(AreaVertex.session_id, AreaVertex.vertex_no).all()
+        self.assertEqual(len(vertices_in_database), sum(n_vertices_for_session),
+            "Incorrect number of entries saved in database.")
+        for session_id in range(self.SESSIONS):
+            with self.subTest(i=session_id):
+                session_vertices = self.session.query(AreaVertex).filter(AreaVertex.session_id == session_id).all()
+                self.assertEqual(len(session_vertices), n_vertices_for_session[session_id],
+                    "Incorrect number of vertices retrieved for session.")
+                for i in range(n_vertices_for_session[session_id]):
+                    with self.subTest(i=i):
+                        self.assertTrue(vertices[session_id][i] is session_vertices[i],
+                            "Retrieved vertex is not the same object as created vertex.")
+        self.assertEqual(len(self.session.query(AreaVertex).\
+            filter(AreaVertex.coordinate == Coordinate(-1, -1)).all()), 0,
+            "Found nonexistant vertex.")
+
+    def test_not_nullable(self):
+        def check_invalid(vertex):
+            self.session.add(vertex)
+            with self.assertRaises(IntegrityError, msg="Nullable constraint not met."):
+                self.session.commit()
+            self.session.rollback()
+
+        coordinate = Coordinate(13.2, 175.4)
+        check_invalid(AreaVertex(vertex_no=1, coordinate=coordinate))
+        check_invalid(AreaVertex(session_id=1, coordinate=coordinate))
+        check_invalid(AreaVertex(session_id=1, vertex_no=1))
 
 class SessionRelationTester(unittest.TestCase):
     def setUp(self):

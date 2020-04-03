@@ -79,7 +79,7 @@ class AreaVertex(Base):
     __tablename__ = 'areas'
 
     session_id = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
-    vertex_no = Column(Integer, primary_key=True)
+    vertex_no = Column(Integer, primary_key=True, nullable=False)
     __coordinate_x = Column(Float, nullable=False)
     __coordinate_y = Column(Float, nullable=False)
     
