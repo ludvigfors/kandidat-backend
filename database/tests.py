@@ -2,7 +2,7 @@ import unittest
 from random import randint, uniform, seed
 
 from database import Coordinate
-from database import UserSession, Client, AreaVertex, Coordinate
+from database import UserSession, Client, AreaVertex, Coordinate, Image
 from database import get_test_database
 
 from sqlalchemy.exc import IntegrityError
@@ -225,6 +225,168 @@ class AreaVertexTester(unittest.TestCase):
         check_invalid(AreaVertex(vertex_no=1, coordinate=coordinate))
         check_invalid(AreaVertex(session_id=1, coordinate=coordinate))
         check_invalid(AreaVertex(session_id=1, vertex_no=1))
+
+class ImageTester(unittest.TestCase):
+    
+    def setUp(self):
+        self.SESSIONS = 5
+
+        seed(123)   # Avoid flaky tests by using the same seed every time.
+        self.db = get_test_database()
+        self.session = self.db.get_session()
+        for _i in range(self.SESSIONS):
+            self.session.add(UserSession(start_time=randint(100000, 200000),
+                                         end_time=randint(200000, 300000),
+                                         drone_mode="AUTO"))
+        self.session.commit()
+
+    def tearDown(self):
+        self.db.release_session()
+
+    def test_single_entry(self):
+        image = Image(
+            session_id=randint(1, self.SESSIONS),
+            time_taken=randint(100000, 200000), 
+            width=480, height=360, type="IR",
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1),
+            file_path="images/1.jpg"
+        )
+        self.session.add(image)
+        self.session.commit()
+        
+        self.assertEqual(len(self.session.query(Image).all()), 1,
+            "Wrong number of entries.")
+        self.assertEqual(self.session.query(Image.width).first()[0], 480,
+            "Wrong width retrieved.")
+        self.assertTrue(self.session.query(Image).filter(Image.height == 360).first() is image,
+            "Failed to filter by coordinate.")
+        self.assertEqual(len(self.session.query(Image).filter(Image.type == "LASERBEAM").all()), 0,
+            "Failed to filter by nonexistant property.")
+
+    def test_multiple_unique_entries(self):
+        n_images = 500
+        session = [randint(1, self.SESSIONS) for i in range(n_images)]
+        time_taken = [randint(100000, 200000) for i in range(n_images)]
+        width = [randint(100, 1000) for i in range(n_images)]
+        height = [randint(100, 1000) for i in range(n_images)]
+        type = ["IR" for i in range(n_images)]
+        up_left = [Coordinate(uniform(1, 100), uniform(100, 200)) for i in range(n_images)]
+        up_right = [Coordinate(uniform(100, 200), uniform(100, 200)) for i in range(n_images)]
+        down_right = [Coordinate(uniform(100, 200), uniform(1, 100)) for i in range(n_images)]
+        down_left = [Coordinate(uniform(1, 100), uniform(1, 100)) for i in range(n_images)]
+        file_path = ["{}.jpg".format(i) for i in range(n_images)]
+
+        images = [Image(
+            session_id=session[i],
+            time_taken=time_taken[i],
+            width=width[i],
+            height=height[i],
+            type=type[i],
+            up_left=up_left[i],
+            up_right=up_right[i],
+            down_right=down_right[i],
+            down_left=down_left[i],
+            file_path=file_path[i]
+        ) for i in range(n_images)]
+        for image in images:
+            self.session.add(image)
+        self.session.commit()
+
+        self.assertEqual(len(self.session.query(Image).all()), n_images,
+            "Incorrect number of entries saved in database.")
+        for session_id in range(self.SESSIONS):
+            with self.subTest(i=session_id):
+                session_images = self.session.query(Image).filter(Image.session_id == session_id).all()
+                self.assertEqual(len(session_images), session.count(session_id),
+                    "Incorrect number of images retrieved for session.")
+        images_in_database = self.session.query(Image).order_by(Image.id).all()
+        for i in range(n_images):
+            with self.subTest(i=i):
+                self.assertTrue(images_in_database[i] is images[i],
+                    "Retrieved Image is not the same object as inserted Image.")
+        self.assertEqual(len(self.session.query(Image).\
+            filter(Image.width == 0).all()), 0,
+            "Found nonexistant vertex.")
+
+    def test_not_nullable(self):
+        def check_invalid(image):
+            self.session.add(image)
+            with self.assertRaises(IntegrityError, msg="Nullable constraint not met."):
+                self.session.commit()
+            self.session.rollback()
+
+        check_invalid(Image(
+            time_taken=100000,
+            width=240, height=360, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1,
+            width=240, height=360, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            height=360, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, height=360,
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, height=360, type="IR",
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, height=360, type="IR",
+            up_left=Coordinate(1, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, height=360, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_left=Coordinate(1, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, height=360, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            file_path="1.jpg"
+        ))
+        check_invalid(Image(
+            session_id=1, time_taken=100000,
+            width=240, height=360, type="IR",
+            up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+        ))
 
 class SessionRelationTester(unittest.TestCase):
     def setUp(self):
