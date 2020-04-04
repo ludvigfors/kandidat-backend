@@ -7,6 +7,8 @@ from sqlalchemy.orm import composite, relationship
 
 from sqlalchemy.ext.declarative import declarative_base
 
+from contextlib import contextmanager
+
 from threading import Lock
 
 DATABASE_FILE_PATH = "database/database.db"
@@ -206,16 +208,26 @@ def get_database():
 def get_test_database():
     return Database(":memory:")
 
+# This context manager is inspired by the sqlalchemy session tutorial.
+# https://docs.sqlalchemy.org/en/13/orm/session_basics.html
+@contextmanager
+def session_scope():
+    db = get_database()
+    session = db.get_session()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+        db.release_session()
 
 if __name__ == '__main__':
-    database = get_test_database()
-    session = database.get_session()
-
-    sample_session = UserSession(start_time=123, drone_mode='AUTO')
-    session.add(sample_session)
-    session.commit()
-
-    for user_session in session.query(UserSession).all():
-        print(user_session)
-
-    database.release_session()
+    with session_scope() as session:
+        # The session only exists withing this with statement. Commit, rollback
+        # and release are performed automatically by the context manager when
+        # appropriate.
+        for user_session in session.query(UserSession).all():
+            print(user_session)
