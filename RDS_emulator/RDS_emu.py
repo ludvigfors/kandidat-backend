@@ -1,5 +1,7 @@
-import numpy
+import platform
 
+import numpy
+import os
 from RDS_emulator.database import Image, session
 from threading import Thread
 from PIL import Image as PIL_image
@@ -17,7 +19,7 @@ class DroneThread(Thread):
     def __init__(self):
         super().__init__()
         self.image_queue = []
-        self.FLYING_TIME = 4
+        self.FLYING_TIME = 2
         self.count = 0
         self.new_image = False
 
@@ -186,11 +188,15 @@ def init_db_and_add_image():
                          "long":16
                      }
              }
-    testFilePath = "/home/ludvig/Desktop/back-end/RDS_emulator/images/testimage.jpg"
+
+    if platform.system() == "Windows":
+        testFilePath = os.path.dirname(__file__) + r"\images\testimage.jpg"
+    else:
+        testFilePath = os.path.dirname(__file__)+ r"/images/testimage.jpg"
+
     image = Image(coord, testFilePath)
     session.add(image)
     session.commit()
-
 
 
 

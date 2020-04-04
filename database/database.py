@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey
-from sqlalchemy import Integer, Float, String
+from sqlalchemy import Integer, Float, String, ARRAY
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm import composite, relationship
@@ -118,6 +118,10 @@ class Image(Base):
     __center_y = Column(Float, nullable=False)
     file_path = Column(String, nullable=False)
 
+    # Saving numpy array
+
+    #image_array = Column(ARRAY(Integer), nullable=False)
+
     up_left = composite(Coordinate, __up_left_x, __up_left_y)
     up_right = composite(Coordinate, __up_right_x, __up_right_y)
     down_right = composite(Coordinate, __down_right_x, __down_right_y)
@@ -129,8 +133,27 @@ class Image(Base):
     def __repr__(self):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
             self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
+    """
+    def __init__(self, session_id, time_taken, width, height, type, coordinates, pic):
+        self.session_id = session_id
+        self.time_taken = time_taken
+        self.width = width
+        self.height = height
+        self.type = type
+       # self.image_array = pic
 
+        self.__up_left_x = coordinates["up_left"]["long"]
+        self.__up_left_y = coordinates["up_left"]["lat"]
+        self.__up_right_x = coordinates["up_right"]["long"]
+        self.__up_right_y = coordinates["up_right"]["lat"]
+        self.__down_right_x = coordinates["down_right"]["long"]
+        self.__down_right_y = coordinates["down_right"]["lat"]
+        self.__down_left_x = coordinates["down_left"]["long"]
+        self.__down_left_y = coordinates["down_left"]["lat"]
+        self.__center_x = coordinates["down_left"]["long"]
+        self.__center_y = coordinates["down_left"]["lat"]
 
+    """
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
 
 

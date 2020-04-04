@@ -4,7 +4,7 @@ from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url
 from threading import Thread
 from IMM.helper_functions import check_request
 from IMM.IMM_app import gui_pub_thread
-from database.database import Image, PrioImage, get_database
+from database.database import Image, PrioImage, session_scope
 import json
 
 
@@ -46,28 +46,13 @@ class RDSSubThread(Thread):
         width = len(new_pic[0])
         height = len(new_pic)
         type = img_arg["type"]
-        up_left_x = img_arg["coordinates"]["up_left"]["long"]
-        up_left_y = img_arg["coordinates"]["up_left"]["lat"]
-        up_right_x = img_arg["coordinates"]["up_right"]["long"]
-        up_right_y = img_arg["coordinates"]["up_right"]["lat"]
-        down_right_x = img_arg["coordinates"]["down_right"]["long"]
-        down_right_y = img_arg["coordinates"]["down_right"]["lat"]
-        down_left_x = img_arg["coordinates"]["down_left"]["long"]
-        down_left_y = img_arg["coordinates"]["down_left"]["lat"]
-        # TODO: Add center positions
 
-        image = Image(session_id, time_taken, width, height, type,
-                      __up_left_x=up_left_x,
-                      __up_left_y=up_left_y,
-                      __up_right_x=up_right_x,
-                      __up_right_y=up_right_y,
-                      __down_left_x=down_left_x,
-                      __down_left_y=down_left_y,
-                      __down_right_x=down_right_x,
-                      __down_right_y=down_right_y)
+        image = Image(session_id, time_taken, width, height, type, img_arg["coordinates"], [])
 
+        with session_scope() as session:
+            session.add(image)
 
-
+        print(0)
 
     def new_pic_notify_gui(self):
         """Run thread_gui_pub"""
