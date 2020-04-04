@@ -223,5 +223,8 @@ def session_scope():
 
 if __name__ == '__main__':
     with session_scope() as session:
+        # The session only exists withing this with statement. Commit, rollback
+        # and release are performed automatically by the context manager when
+        # appropriate.
         for user_session in session.query(UserSession).all():
             print(user_session)
