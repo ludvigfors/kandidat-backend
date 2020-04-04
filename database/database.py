@@ -208,7 +208,8 @@ def get_database():
 def get_test_database():
     return Database(":memory:")
 
-
+# This context manager is inspired by the sqlalchemy session tutorial.
+# https://docs.sqlalchemy.org/en/13/orm/session_basics.html
 @contextmanager
 def session_scope():
     db = get_database()
