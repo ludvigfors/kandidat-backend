@@ -159,7 +159,7 @@ class Drone(Base):
     __tablename__ = 'drones'
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey('sessions.id'))
+    session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
     last_updated = Column(Integer, nullable=True)
     eta = Column(Integer, nullable=True)
 
