@@ -2,7 +2,7 @@ import unittest
 from random import randint, uniform, seed
 
 from database import Coordinate
-from database import UserSession, Client, AreaVertex, Coordinate, Image, PrioImage
+from database import UserSession, Client, AreaVertex, Image, PrioImage, Drone
 from database import get_test_database
 
 from sqlalchemy.exc import IntegrityError
@@ -456,7 +456,7 @@ class PrioImageTester(unittest.TestCase):
                     filter(PrioImage.id == i + 1).first() is images[i],
                     "Retrieved image is not the same object as created image.")
         self.assertEqual(len(self.session.query(PrioImage).\
-            filter(PrioImage.session_id == 6).all()), 0,
+            filter(PrioImage.session_id == self.SESSIONS + 1).all()), 0,
             "Found nonexistant image.")
 
     def test_not_nullable(self):
@@ -469,6 +469,85 @@ class PrioImageTester(unittest.TestCase):
         check_invalid(PrioImage(time_requested=150000, status="COMPLETE"))
         check_invalid(PrioImage(session_id=1, status="COMPLETE"))
         check_invalid(PrioImage(session_id=1, time_requested=150000))
+
+class DroneTester(unittest.TestCase):
+    
+    def setUp(self):
+        self.SESSIONS = 5
+
+        seed(123)   # Avoid flaky tests by using the same seed every time.
+        self.db = get_test_database()
+        self.session = self.db.get_session()
+        for _i in range(self.SESSIONS):
+            self.session.add(UserSession(
+                start_time=randint(100000, 200000),
+                end_time=randint(200000, 300000),
+                drone_mode="AUTO"
+            ))
+        self.session.commit()
+
+    def tearDown(self):
+        self.db.release_session()
+
+    def test_single_entry(self):
+        drone = Drone(
+            session_id=1,
+            last_updated=randint(100000, 200000),
+            eta=randint(100, 1000)
+        )
+        self.session.add(drone)
+        self.session.commit()
+        
+        self.assertEqual(len(self.session.query(Drone).all()), 1,
+            "Wrong number of entries.")
+        self.assertTrue(self.session.query(Drone).first() is drone,
+            "Wrong drone retrieved.")
+        self.assertTrue(self.session.query(Drone).\
+            filter(Drone.session_id == 1).first() is drone,
+            "Failed to filter by status.")
+        self.assertEqual(len(self.session.query(Drone).\
+            filter(Drone.eta == 2000).all()), 0,
+            "Failed to filter by nonexistant property.")
+
+    def test_multiple_unique_entries(self):
+        n_drones = 100
+        session_ids = [randint(1, self.SESSIONS) for i in range(n_drones)]
+        last_updated = [randint(100000, 200000) for i in range(n_drones)]
+        eta = [randint(100, 1000) for i in range(n_drones)]
+        drones = [Drone(
+            session_id=session_ids[i], last_updated=last_updated[i], eta=eta[i]
+        ) for i in range(n_drones)]
+        for drone in drones:
+            self.session.add(drone)
+        self.session.commit()
+
+        drones_in_database = self.session.query(Drone).all()
+        self.assertEqual(len(drones_in_database), n_drones,
+            "Incorrect number of entries saved in database.")
+        for session_id in range(self.SESSIONS):
+            with self.subTest(i=session_id):
+                session_drones = self.session.query(Drone).\
+                    filter(Drone.session_id == session_id).all()
+                self.assertEqual(len(session_drones),
+                    session_ids.count(session_id),
+                    "Incorrect number of drones retrieved for session.")
+        for i in range(n_drones):
+            with self.subTest(i=i):
+                self.assertTrue(self.session.query(Drone).\
+                    filter(Drone.id == i + 1).first() is drones[i],
+                    "Retrieved drone is not the same object as created drone.")
+        self.assertEqual(len(self.session.query(Drone).\
+            filter(Drone.session_id == self.SESSIONS + 1).all()), 0,
+            "Found nonexistant drone.")
+
+    def test_not_nullable(self):
+        def check_invalid(image):
+            self.session.add(image)
+            with self.assertRaises(IntegrityError, msg="Nullable constraint not met."):
+                self.session.commit()
+            self.session.rollback()
+
+        check_invalid(Drone())
 
 class SessionRelationTester(unittest.TestCase):
     def setUp(self):
