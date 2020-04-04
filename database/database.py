@@ -1,3 +1,5 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy import Integer, Float, String
@@ -195,13 +197,16 @@ def __get_database_instance(file_path):
     __active_database_mutex.release()
     return __active_databases[file_path]
 
-
 def get_database():
     return __get_database_instance(DATABASE_FILE_PATH)
 
-
-def get_test_database():
-    return Database(":memory:")
+def get_test_database(in_memory=True):
+    if in_memory:
+        return Database(":memory:")
+    else:
+        if os.path.exists("test.db"):
+            os.remove("test.db")
+        return __get_database_instance("test.db")
 
 
 if __name__ == '__main__':
