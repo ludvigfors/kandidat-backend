@@ -1,5 +1,7 @@
 import unittest
 from random import randint, uniform, seed
+from time import sleep
+from threading import Thread
 
 from database import Coordinate
 from database import UserSession, Client, AreaVertex, Image, PrioImage, Drone
@@ -478,7 +480,7 @@ class DroneTester(unittest.TestCase):
         seed(123)   # Avoid flaky tests by using the same seed every time.
         self.db = get_test_database()
         self.session = self.db.get_session()
-        for _i in range(self.SESSIONS):
+        for i in range(self.SESSIONS):
             self.session.add(UserSession(
                 start_time=randint(100000, 200000),
                 end_time=randint(200000, 300000),
@@ -587,6 +589,52 @@ class SessionRelationTester(unittest.TestCase):
         self.assertFalse(retrieved_clients[1] is client)
         self.assertTrue(retrieved_clients[1].session is session)
 
+class DatabaseConcurrencyTester(unittest.TestCase):
+
+    def insert_sessions(self, n_sessions):
+        session = self.db.get_session()
+        for i in range(n_sessions):
+            session.add(UserSession(start_time=i, end_time=i, drone_mode="AUTO"))
+            sleep(0.01)
+        self.assertEqual(len(session.new), n_sessions,
+            "Wrong number of UserSessions added to session.")
+        session.commit()
+        self.assertEqual(len(session.new), 0,
+            "New UserSessions present after commit")
+        self.db.release_session()
+
+    def setUp(self):
+        self.db = get_test_database(in_memory=False)
+
+    def tearDown(self):
+        pass
+
+    def run_threads(self, func, n_threads):
+        results = [None for i in range(n_threads)]
+
+        def wrapper(i):
+            nonlocal results
+            try:
+                func()
+            except Exception as e:
+                results[i] = e
+        
+        threads = [Thread(target=lambda: wrapper(i)) for i in range(n_threads)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+        return results
+
+    def test_concurrency(self):
+        n_threads = 10
+        n_sessions_per_thread = 10
+        results = self.run_threads(lambda: self.insert_sessions(n_sessions_per_thread), n_threads)
+        for res in results:
+            self.assertIsNone(res)
+        session = self.db.get_session()
+        self.assertEqual(session.query(UserSession).count(), n_threads * n_sessions_per_thread,
+            "Incorrect number of sessions commited to database")
 
 if __name__ == "__main__":
     unittest.main()
