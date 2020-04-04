@@ -2,7 +2,7 @@ import unittest
 from random import randint, uniform, seed
 
 from database import Coordinate
-from database import UserSession, Client, AreaVertex, Coordinate, Image
+from database import UserSession, Client, AreaVertex, Coordinate, Image, PrioImage
 from database import get_test_database
 
 from sqlalchemy.exc import IntegrityError
@@ -387,6 +387,88 @@ class ImageTester(unittest.TestCase):
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
         ))
+
+class PrioImageTester(unittest.TestCase):
+    
+    def setUp(self):
+        self.SESSIONS = 5
+
+        seed(123)   # Avoid flaky tests by using the same seed every time.
+        self.db = get_test_database()
+        self.session = self.db.get_session()
+        for _i in range(self.SESSIONS):
+            self.session.add(UserSession(start_time=randint(100000, 200000),
+                                         end_time=randint(200000, 300000),
+                                         drone_mode="AUTO"))
+        self.session.commit()
+
+    def tearDown(self):
+        self.db.release_session()
+
+    def test_single_entry(self):
+        image = PrioImage(
+            session_id=randint(1, self.SESSIONS),
+            time_requested=randint(100000, 200000),
+            status="PENDING", eta=randint(100, 1000),
+            coordinate=Coordinate(uniform(1, 5), uniform(1, 5))
+        )
+        self.session.add(image)
+        self.session.commit()
+        
+        self.assertEqual(len(self.session.query(PrioImage).all()), 1,
+            "Wrong number of entries.")
+        self.assertEqual(self.session.query(PrioImage.status).first()[0],
+            "PENDING", "Wrong vertex retrieved.")
+        self.assertTrue(self.session.query(PrioImage).\
+            filter(PrioImage.status == "PENDING").first() is image,
+            "Failed to filter by status.")
+        self.assertEqual(len(self.session.query(PrioImage).\
+            filter(PrioImage.time_requested == 0).all()), 0,
+            "Failed to filter by nonexistant property.")
+
+    def test_multiple_unique_entries(self):
+        n_images = 100
+        session_ids = [randint(1, self.SESSIONS) for i in range(n_images)]
+        time_requested = [randint(100000, 200000) for i in range(n_images)]
+        status = ["CANCELLED" for i in range(n_images)]
+        coordinates = [Coordinate(uniform(10, 20), uniform(10, 20)) for i in range(n_images)]
+        images = [PrioImage(
+            session_id=session_ids[i], time_requested=time_requested[i],
+            status=status[i], coordinate=coordinates[i]
+        ) for i in range(n_images)]
+        for image in images:
+            self.session.add(image)
+        self.session.commit()
+
+        images_in_database = self.session.query(PrioImage).order_by(PrioImage.id).all()
+        self.assertEqual(len(images_in_database), n_images,
+            "Incorrect number of entries saved in database.")
+        for session_id in range(self.SESSIONS):
+            with self.subTest(i=session_id):
+                session_images = self.session.query(PrioImage).\
+                    filter(PrioImage.session_id == session_id).all()
+                self.assertEqual(len(session_images),
+                    session_ids.count(session_id),
+                    "Incorrect number of images retrieved for session.")
+        for i in range(n_images):
+            with self.subTest(i=i):
+                self.assertTrue(self.session.query(PrioImage).\
+                    filter(PrioImage.id == i + 1).first() is images[i],
+                    "Retrieved image is not the same object as created image.")
+        self.assertEqual(len(self.session.query(PrioImage).\
+            filter(PrioImage.session_id == 6).all()), 0,
+            "Found nonexistant image.")
+
+    def test_not_nullable(self):
+        def check_invalid(image):
+            self.session.add(image)
+            with self.assertRaises(IntegrityError, msg="Nullable constraint not met."):
+                self.session.commit()
+            self.session.rollback()
+
+        check_invalid(PrioImage(time_requested=150000, status="COMPLETE"))
+        check_invalid(PrioImage(session_id=1, status="COMPLETE"))
+        check_invalid(PrioImage(session_id=1, time_requested=150000))
 
 class SessionRelationTester(unittest.TestCase):
     def setUp(self):
