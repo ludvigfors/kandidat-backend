@@ -1,9 +1,9 @@
 import unittest
 from random import randint, uniform, seed
 
-from IMM_database import Coordinate
-from IMM_database import UserSession, Client
-from IMM_database import get_test_database
+from IMM_database.database import Coordinate
+from IMM_database.database import UserSession, Client
+from IMM_database.database import get_test_database
 
 from sqlalchemy.exc import IntegrityError
 
