@@ -3,7 +3,7 @@ from RDS_emulator.RDS_app import *
 from IMM.IMM_app import *
 context = zmq.Context()
 
-# Run this the first time the test goes to add the database (images.db)
+# Run this the first time the test goes to add the IMM_database (images.db)
 #init_db_and_add_image()
 
 
