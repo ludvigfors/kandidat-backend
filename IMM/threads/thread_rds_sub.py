@@ -17,6 +17,7 @@ def generate_image_name():
 
 
 def save_image(new_pic):
+    # TODO: Organize how the images are saved
     folder_path = get_path_from_root("/IMM/images/")
     jpg_image = PIL_image.fromarray(new_pic)
     image_path = folder_path + generate_image_name()
@@ -25,7 +26,6 @@ def save_image(new_pic):
 
 
 def save_to_database(img_arg, new_pic, file_path):
-    # TODO: Orginize how the images are saved
     i = 0
     # session_id = get_session_id()
     # time_taken = get_time_taken() ??
@@ -36,14 +36,12 @@ def save_to_database(img_arg, new_pic, file_path):
     # Gather image info
     width = len(new_pic[0])
     height = len(new_pic)
-    type = img_arg["type"]
+    img_type = img_arg["type"]
 
-    image = Image(session_id, time_taken, width, height, type, file_path, img_arg["coordinates"])
+    image = Image(session_id, time_taken, width, height, img_type, file_path, img_arg["coordinates"])
 
     with session_scope() as session:
         session.add(image)
-
-    print(0)
 
 
 def new_pic_notify_gui():
@@ -64,15 +62,15 @@ class RDSSubThread(Thread):
         self.RDS_sub_socket.connect(RDS_sub_socket_url)
 
     def recv_image_array(self, metadata, flags=0, copy=True, track=False):
+        """Receives and returns the image converted to a numpy array"""
         msg = self.RDS_sub_socket.recv(flags=flags, copy=copy, track=track)
         buf = memoryview(msg)
-        A = numpy.frombuffer(buf, dtype=metadata["dtype"])
-        return A.reshape(metadata["shape"])
+        image_array = numpy.frombuffer(buf, dtype=metadata["dtype"])
+        return image_array.reshape(metadata["shape"])
 
     def run(self):
         while True:
             request = self.RDS_sub_socket.recv_json(flags=0)
-            # If zmq.sndmore
             check_request(request)
             if "image_md" in request:
                 # We have a new image

@@ -67,7 +67,7 @@ class PubThread(Thread):
             }
         }
 
-        print("Sending add poi")
+        print("Sending poi")
         self.req_socket.send_json(json.dumps(req3))
         resp = self.req_socket.recv()
         # print(resp)
