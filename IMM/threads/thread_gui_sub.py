@@ -1,5 +1,5 @@
 from IMM.IMM_thread_config import context, zmq, gui_sub_socket_url
-from IMM.helper_functions import check_request
+from helper_functions import check_request
 from threading import Thread
 from IMM.IMM_app import rds_pub_thread
 import json
@@ -67,7 +67,7 @@ class GuiSubThread(Thread):
         # Sends request to rds pub thread
 
         # Psudocode
-        # if poi in database:
+        # if poi in IMM_database:
         # return db.image.metadata
         # else
         rds_pub_thread.add_request(poi)
@@ -92,7 +92,7 @@ class GuiSubThread(Thread):
         pass
 
     def get_image_by_id(self, request):
-        """Get the image from the database with the specified ID"""
+        """Get the image from the IMM_database with the specified ID"""
         pass
 
 

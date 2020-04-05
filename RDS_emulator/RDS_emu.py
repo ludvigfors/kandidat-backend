@@ -8,6 +8,7 @@ from PIL import Image as PIL_image
 import time
 import json
 import zmq
+from helper_functions import get_path_from_root
 
 context = zmq.Context()
 
@@ -161,7 +162,7 @@ class IMMRepThread(Thread):
 
 
 def init_db_and_add_image():
-    """Inserts a test image into the database"""
+    """Inserts a test image into the IMM_database"""
     coord = {
                 "up_left":
                     {
@@ -189,11 +190,13 @@ def init_db_and_add_image():
                      }
              }
 
+    """
     if platform.system() == "Windows":
         testFilePath = os.path.dirname(__file__) + r"\images\testimage.jpg"
     else:
         testFilePath = os.path.dirname(__file__)+ r"/images/testimage.jpg"
-
+    """
+    testFilePath = get_path_from_root("/RDS_emulator/images/testimage.jpg")
     image = Image(coord, testFilePath)
     session.add(image)
     session.commit()

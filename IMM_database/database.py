@@ -11,7 +11,10 @@ from contextlib import contextmanager
 
 from threading import Lock
 
-DATABASE_FILE_PATH = "database/database.db"
+from helper_functions import get_path_from_root
+
+DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
+
 
 Base = declarative_base()
 
@@ -118,10 +121,6 @@ class Image(Base):
     __center_y = Column(Float, nullable=False)
     file_path = Column(String, nullable=False)
 
-    # Saving numpy array
-
-    #image_array = Column(ARRAY(Integer), nullable=False)
-
     up_left = composite(Coordinate, __up_left_x, __up_left_y)
     up_right = composite(Coordinate, __up_right_x, __up_right_y)
     down_right = composite(Coordinate, __down_right_x, __down_right_y)
@@ -133,14 +132,14 @@ class Image(Base):
     def __repr__(self):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
             self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
-    """
-    def __init__(self, session_id, time_taken, width, height, type, coordinates, pic):
+
+    def __init__(self, session_id, time_taken, width, height, type, file_path, coordinates):
         self.session_id = session_id
         self.time_taken = time_taken
         self.width = width
         self.height = height
         self.type = type
-       # self.image_array = pic
+        self.file_path = file_path
 
         self.__up_left_x = coordinates["up_left"]["long"]
         self.__up_left_y = coordinates["up_left"]["lat"]
@@ -153,7 +152,7 @@ class Image(Base):
         self.__center_x = coordinates["down_left"]["long"]
         self.__center_y = coordinates["down_left"]["lat"]
 
-    """
+
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
 
 

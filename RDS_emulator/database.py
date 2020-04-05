@@ -1,7 +1,9 @@
 from sqlalchemy import create_engine, Column, Integer, String, JSON
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-engine = create_engine('sqlite:///images.db', echo=False)
+from helper_functions import get_path_from_root
+filepath = get_path_from_root("/RDS_emulator/rds_database.db")
+engine = create_engine('sqlite:///'+filepath, echo=False)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
 session = Session()

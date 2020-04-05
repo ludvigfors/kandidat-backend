@@ -1,11 +1,11 @@
 """A mock simulating the GUI making requests"""
 import os
-db_exists = os.path.exists("images.db")  # Checks if the database exists before the start of the file
+db_exists = os.path.exists("images.db")  # Checks if the IMM_database exists before the start of the file
 from RDS_emulator.RDS_app import *
 from IMM.IMM_app import *
 context = zmq.Context()
 
-# Run this the first time the test goes to add the database (images.db)
+# Run this the first time the test goes to add the IMM_database (images.db)
 if not db_exists:
     init_db_and_add_image()
 
