@@ -9,9 +9,14 @@ from sqlalchemy.orm import composite, relationship
 
 from sqlalchemy.ext.declarative import declarative_base
 
+from contextlib import contextmanager
+
 from threading import Lock
 
-DATABASE_FILE_PATH = "database/database.db"
+from helper_functions import get_path_from_root
+
+DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
+
 
 Base = declarative_base()
 
@@ -114,18 +119,42 @@ class Image(Base):
     __down_right_y = Column(Float, nullable=False)
     __down_left_x = Column(Float, nullable=False)
     __down_left_y = Column(Float, nullable=False)
+    __center_x = Column(Float, nullable=False)
+    __center_y = Column(Float, nullable=False)
+    file_path = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
 
     up_left = composite(Coordinate, __up_left_x, __up_left_y)
     up_right = composite(Coordinate, __up_right_x, __up_right_y)
     down_right = composite(Coordinate, __down_right_x, __down_right_y)
     down_left = composite(Coordinate, __down_left_x, __down_left_y)
-    file_path = Column(String, nullable=False)
+    center = composite(Coordinate, __center_x, __center_y)
 
     session = relationship("UserSession", back_populates="images")
 
     def __repr__(self):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
             self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
+
+    def __init__(self, session_id, time_taken, width, height, img_type, file_data, coordinates):
+        self.session_id = session_id
+        self.time_taken = time_taken
+        self.width = width
+        self.height = height
+        self.type = img_type
+        self.file_path = file_data[0]
+        self.file_name = file_data[1]
+
+        self.__up_left_x = coordinates["up_left"]["long"]
+        self.__up_left_y = coordinates["up_left"]["lat"]
+        self.__up_right_x = coordinates["up_right"]["long"]
+        self.__up_right_y = coordinates["up_right"]["lat"]
+        self.__down_right_x = coordinates["down_right"]["long"]
+        self.__down_right_y = coordinates["down_right"]["lat"]
+        self.__down_left_x = coordinates["down_left"]["long"]
+        self.__down_left_y = coordinates["down_left"]["lat"]
+        self.__center_x = coordinates["down_left"]["long"]
+        self.__center_y = coordinates["down_left"]["lat"]
 
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
@@ -208,16 +237,26 @@ def get_test_database(in_memory=True):
             os.remove("test.db")
         return __get_database_instance("test.db")
 
+# This context manager is inspired by the sqlalchemy session tutorial.
+# https://docs.sqlalchemy.org/en/13/orm/session_basics.html
+@contextmanager
+def session_scope():
+    db = get_database()
+    session = db.get_session()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+        db.release_session()
 
 if __name__ == '__main__':
-    database = get_test_database()
-    session = database.get_session()
-
-    sample_session = UserSession(start_time=123, drone_mode='AUTO')
-    session.add(sample_session)
-    session.commit()
-
-    for user_session in session.query(UserSession).all():
-        print(user_session)
-
-    database.release_session()
+    with session_scope() as session:
+        # The session only exists withing this with statement. Commit, rollback
+        # and release are performed automatically by the context manager when
+        # appropriate.
+        for user_session in session.query(UserSession).all():
+            print(user_session)

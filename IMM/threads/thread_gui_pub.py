@@ -1,6 +1,6 @@
 from IMM.IMM_thread_config import context, zmq, gui_pub_socket_url
 from threading import Thread
-from IMM.helper_functions import check_request
+from helper_functions import check_request
 import json
 
 

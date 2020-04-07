@@ -1,11 +1,12 @@
 import unittest
+
 from random import randint, uniform, seed
 from time import sleep
 from threading import Thread
 
-from database import Coordinate
-from database import UserSession, Client, AreaVertex, Image, PrioImage, Drone
-from database import get_test_database
+from IMM_database.database import Coordinate
+from IMM_database.database import UserSession, Client, AreaVertex, Image, PrioImage, Drone
+from IMM_database.database import get_test_database
 
 from sqlalchemy.exc import IntegrityError
 
@@ -54,7 +55,7 @@ class UserSessionTester(unittest.TestCase):
         sessions_in_database = self.session.query(UserSession).\
             order_by(UserSession.id).all()
         self.assertEqual(len(sessions_in_database), n_sessions,
-            "Incorrect number of entries saved in database.")
+            "Incorrect number of entries saved in IMM_database.")
         for i in range(n_sessions):
             with self.subTest(i=i):
                 self.assertTrue(user_sessions[i] is sessions_in_database[i],
@@ -131,7 +132,7 @@ class ClientTester(unittest.TestCase):
         clients_in_database = self.session.query(Client).\
             order_by(Client.id).all()
         self.assertEqual(len(clients_in_database), n_clients,
-            "Incorrect number of entries saved in database.")
+            "Incorrect number of entries saved in IMM_database.")
         for i in range(n_clients):
             with self.subTest(i=i):
                 self.assertTrue(clients[i] is clients_in_database[i],
