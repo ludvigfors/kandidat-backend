@@ -154,7 +154,7 @@ class PrioImage(Base):
     coordinate = composite(Coordinate, __coordinate_lat, __coordinate_long)
     
     session = relationship("UserSession", back_populates="prio_images")
-    image = relationship("Image", back_populates="prio_image")
+    image = relationship("Image", uselist=False, back_populates="prio_image")
 
     def __repr__(self):
         return '<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}'.format(
@@ -162,7 +162,7 @@ class PrioImage(Base):
 
 
 UserSession.prio_images = relationship("PrioImage", order_by=PrioImage.id, back_populates="session")
-Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, back_populates="image")
+Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, uselist=False, back_populates="image")
 
 
 class Drone(Base):
