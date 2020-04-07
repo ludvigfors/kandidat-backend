@@ -1,5 +1,7 @@
 import os
 
+from string import Formatter
+
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy import Integer, Float, String
@@ -20,6 +22,19 @@ DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
 
 Base = declarative_base()
 
+# This formatter is used to automatically handle formatting of None values.
+class NoneFormatter(Formatter):
+    def __init__(self, namespace={}):
+        super().__init__()
+        self.namespace = namespace
+
+    def format_field(self, value, format_spec):
+        if value == None:
+            return "NULL"
+        else:
+            return super().format_field(value, format_spec)
+
+
 # This class is inspired by the SQLAlchemy tutorial.
 # https://docs.sqlalchemy.org/en/13/orm/composites.html
 class Coordinate:
@@ -31,7 +46,7 @@ class Coordinate:
         return self.lat, self.long
 
     def __repr__(self):
-        return "Coordinate(lat={}, long={})".format(self.lat, self.long)
+        return NoneFormatter().format("Coordinate(lat={}, long={})", self.lat, self.long)
 
     def __eq__(self, other):
         return isinstance(other, Coordinate) and self.lat == other.lat and self.long == other.long
@@ -49,7 +64,7 @@ class UserSession(Base):
     drone_mode = Column(String, nullable=False)
 
     def __repr__(self):
-        return '<UserSession(id={0:6d}, start_time={1}, end_time={2}, drone_mode={3}'.format(
+        return NoneFormatter().format('<UserSession(id={:6d}, start_time={}, end_time={}, drone_mode={}', 
             self.id, self.start_time, self.end_time, self.drone_mode)
 
 
@@ -75,8 +90,8 @@ class Client(Base):
     session = relationship("UserSession", back_populates="clients")
 
     def __repr__(self):
-        return '<Client(id={0:6d}, session_id={1:6d}, coordinates={2}'.format(
-            self.id, self.session_id, self.coordinates)
+        return NoneFormatter().format('<Client(id={0:6d}, session_id={1:6d}, up_left={2}, up_right={3}, down_right={4}, down_left={5}',
+            self.id, self.session_id, self.up_left, self.up_right, self.down_right, self.down_left)
 
 
 UserSession.clients = relationship("Client", order_by=Client.id, back_populates="session")
@@ -95,7 +110,7 @@ class AreaVertex(Base):
     session = relationship("UserSession", back_populates="area_vertices")
 
     def __repr__(self):
-        return '<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}'.format(
+        return NoneFormatter().format('<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}',
             self.session_id, self.vertex_no, self.coordinate.__repr__())
 
 
@@ -132,7 +147,7 @@ class Image(Base):
     session = relationship("UserSession", back_populates="images")
 
     def __repr__(self):
-        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
+        return NoneFormatter().format('<Image(id={:6d}, session_id={:6d}, time_taken={}, width={:4d}px, height={:4d}px, type={}, up_left={}, up_right={}, down_right={}, down_left={}, file_path={}',
             self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_name)
 
 
@@ -157,7 +172,7 @@ class PrioImage(Base):
     image = relationship("Image", uselist=False, back_populates="prio_image")
 
     def __repr__(self):
-        return '<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}'.format(
+        return NoneFormatter().format('<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}',
             self.id, self.session_id, self.time_requested, self.coordinate.__repr__(), self.status, self.image_id, self.eta)
 
 
@@ -174,6 +189,10 @@ class Drone(Base):
     eta = Column(Integer, nullable=True)
 
     session = relationship("UserSession", back_populates="drones")
+
+    def __repr__(self):
+        return NoneFormatter().format('<Drone(id={0:6d}, session_id={1:6d}, last_updated={2}, eta={3}',
+            self.id, self.session_id, self.last_updated, self.eta)
 
 
 UserSession.drones = relationship("Drone", order_by=Drone.id, back_populates="session")
