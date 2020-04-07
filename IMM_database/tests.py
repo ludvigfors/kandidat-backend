@@ -708,6 +708,31 @@ class RelationTester(unittest.TestCase):
         self.assertFalse(retrieved_images[1] is prio_image)
         self.assertTrue(retrieved_images[1].session is session)
 
+    def testSessionDroneRelation(self):
+        session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
+        drone = Drone(session_id=1)
+        self.session.add(session)
+        self.session.add(drone)
+        self.session.commit()
+
+        self.assertTrue(self.session.query(Drone).first().session is session,
+            "Wrong session retrieved from drone.")
+        self.assertTrue(self.session.query(UserSession).first().drones[0] is drone,
+            "Wrong drone retrieved from session.")
+        
+        session.drones.append(Drone(session_id=1, last_updated=123))
+        self.session.commit()
+
+        self.assertEqual(self.session.query(Drone).count(), 2,
+            "Failed to add Drone via UserSession.drones.")
+        self.assertEqual(len(self.session.query(UserSession).first().drones), 2,
+            "Failed to retrieve all drones from UserSession.drones.")
+        retrieved_drones = self.session.query(Drone).order_by(Drone.id).all()
+        self.assertTrue(retrieved_drones[0] is drone)
+        self.assertTrue(retrieved_drones[0].session is session)
+        self.assertFalse(retrieved_drones[1] is drone)
+        self.assertTrue(retrieved_drones[1].session is session)
+
     def testImagePrioImageRelation(self):
         session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
         image = Image(
