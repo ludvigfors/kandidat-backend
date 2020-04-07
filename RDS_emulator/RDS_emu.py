@@ -89,9 +89,9 @@ class IMMPubThread(Thread):
             dtype=str(A.dtype),
             shape=A.shape,
         )
-        
+
         metadata["image_md"] = image_md
-        
+
         self.socket.send_json(metadata, flags | zmq.SNDMORE)
         self.socket.send(A, flags, copy=copy, track=track)
 
@@ -195,6 +195,7 @@ def init_db_and_add_image():
     image = Image(coord, testFilePath)
     session.add(image)
     session.commit()
+
 
 
 

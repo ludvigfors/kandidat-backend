@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Table, ForeignKey
-from sqlalchemy import Integer, Float, String, ARRAY
+from sqlalchemy import Integer, Float, String
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm import composite, relationship
@@ -129,8 +129,6 @@ class Image(Base):
     center = composite(Coordinate, __center_x, __center_y)
 
     session = relationship("UserSession", back_populates="images")
-
-
 
     def __repr__(self):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
