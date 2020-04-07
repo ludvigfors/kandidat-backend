@@ -599,6 +599,33 @@ class SessionRelationTester(unittest.TestCase):
         self.assertFalse(retrieved_clients[1] is client)
         self.assertTrue(retrieved_clients[1].session is session)
 
+    def testSessionAreaVertexRelation(self):
+        session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
+        vertex = AreaVertex(session_id=1, vertex_no=1, coordinate=Coordinate(1, 5))
+        self.session.add(session)
+        self.session.add(vertex)
+        self.session.commit()
+
+        self.assertTrue(self.session.query(AreaVertex).first().session is session,
+            "Wrong session retrieved from vertex.")
+        self.assertTrue(self.session.query(UserSession).first().area_vertices[0] is vertex,
+            "Wrong vertex retrieved from session.")
+        
+        session.area_vertices.append(AreaVertex(
+            session_id=1, vertex_no=2, coordinate=Coordinate(5, 1)
+        ))
+        self.session.commit()
+
+        self.assertEqual(self.session.query(AreaVertex).count(), 2,
+            "Failed to add AreaVertex via UserSession.area_vertices.")
+        self.assertEqual(len(self.session.query(UserSession).first().area_vertices), 2,
+            "Failed to retrieve all vertices from UserSession.area_verices.")
+        retrieved_vertices = self.session.query(AreaVertex).order_by(AreaVertex.vertex_no).all()
+        self.assertTrue(retrieved_vertices[0] is vertex)
+        self.assertTrue(retrieved_vertices[0].session is session)
+        self.assertFalse(retrieved_vertices[1] is vertex)
+        self.assertTrue(retrieved_vertices[1].session is session)
+
 class DatabaseConcurrencyTester(unittest.TestCase):
 
     def insert_sessions(self, n_sessions):
