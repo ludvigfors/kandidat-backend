@@ -8,10 +8,11 @@ from sqlalchemy.orm import composite, relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 from contextlib import contextmanager
-
 from threading import Lock
+from helper_functions import get_path_from_root
 
-DATABASE_FILE_PATH = "database/database.db"
+DATABASE_FILE_PATH = get_path_from_root("/IMM_database/database.db")
+
 
 Base = declarative_base()
 

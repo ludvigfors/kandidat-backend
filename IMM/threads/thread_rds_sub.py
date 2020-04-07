@@ -24,7 +24,7 @@ class RDSSubThread(Thread):
             self.new_pic_notify_gui()
 
     def save_to_database(self, new_pic):
-        # TODO: Save new pic to database here
+        # TODO: Save new pic to IMM_database here
         pass
 
     def new_pic_notify_gui(self):
