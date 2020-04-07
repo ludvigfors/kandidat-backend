@@ -121,7 +121,6 @@ class Image(Base):
     __down_left_long = Column(Float, nullable=False)
     __center_lat = Column(Float, nullable=False)
     __center_long = Column(Float, nullable=False)
-    file_path = Column(String, nullable=False)
     file_name = Column(String, nullable=False)
 
     up_left = composite(Coordinate, __up_left_lat, __up_left_long)
@@ -134,7 +133,7 @@ class Image(Base):
 
     def __repr__(self):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
-            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
+            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_name)
 
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")

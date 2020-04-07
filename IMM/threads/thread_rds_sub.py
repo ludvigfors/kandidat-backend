@@ -73,7 +73,7 @@ def save_to_database(img_arg, new_pic, file_data):
         width=width,
         height=height,
         img_type=img_type,
-        file_data=file_data,
+        file_name=file_data[1],
         up_left=up_left,
         up_right=up_right,
         down_right=down_right,

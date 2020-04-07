@@ -177,7 +177,7 @@ class AreaVertexTester(unittest.TestCase):
 
     def test_single_entry(self):
         vertex = AreaVertex(session_id=randint(1, self.SESSIONS),
-            vertex_no=1, coordinate=Coordinate(x=1.5, y=0.23))
+            vertex_no=1, coordinate=Coordinate(lat=1.5, long=0.23))
         self.session.add(vertex)
         self.session.commit()
         
@@ -255,7 +255,8 @@ class ImageTester(unittest.TestCase):
             up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1),
             down_left=Coordinate(1, 1),
-            file_path="images/1.jpg"
+            center=Coordinate(3, 3),
+            file_name="images/1.jpg"
         )
         self.session.add(image)
         self.session.commit()
@@ -280,7 +281,8 @@ class ImageTester(unittest.TestCase):
         up_right = [Coordinate(uniform(100, 200), uniform(100, 200)) for i in range(n_images)]
         down_right = [Coordinate(uniform(100, 200), uniform(1, 100)) for i in range(n_images)]
         down_left = [Coordinate(uniform(1, 100), uniform(1, 100)) for i in range(n_images)]
-        file_path = ["{}.jpg".format(i) for i in range(n_images)]
+        center = [Coordinate(100, 100) for i in range(n_images)]
+        file_name = ["{}.jpg".format(i) for i in range(n_images)]
 
         images = [Image(
             session_id=session[i],
@@ -292,7 +294,8 @@ class ImageTester(unittest.TestCase):
             up_right=up_right[i],
             down_right=down_right[i],
             down_left=down_left[i],
-            file_path=file_path[i]
+            center=center[i],
+            file_name=file_name[i]
         ) for i in range(n_images)]
         for image in images:
             self.session.add(image)
@@ -326,63 +329,63 @@ class ImageTester(unittest.TestCase):
             width=240, height=360, type="IR",
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1,
             width=240, height=360, type="IR",
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             height=360, type="IR",
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             width=240, type="IR",
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             width=240, height=360,
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             width=240, height=360, type="IR",
             up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             width=240, height=360, type="IR",
             up_left=Coordinate(1, 5),
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             width=240, height=360, type="IR",
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_left=Coordinate(1, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
             width=240, height=360, type="IR",
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
             down_right=Coordinate(5, 1),
-            file_path="1.jpg"
+            file_name="1.jpg"
         ))
         check_invalid(Image(
             session_id=1, time_taken=100000,
