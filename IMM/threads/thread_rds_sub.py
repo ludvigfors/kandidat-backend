@@ -6,23 +6,27 @@ from helper_functions import check_request
 from IMM.IMM_app import gui_pub_thread
 from IMM_database.database import Image, PrioImage, session_scope, UserSession
 from helper_functions import get_path_from_root
-import json, datetime
+import json, datetime, os
 
 
 def generate_image_name():
     now = datetime.datetime.now()
     image_datetime = now.strftime("%Y-%m-%d_%H-%M-%S")
-    image_name = image_datetime + ".jpg"
-    return image_name
+    with session_scope() as session:
+        count = len(session.query(Image).filter_by(file_name=image_datetime).all())
+
+    image_name = image_datetime + "_(" + str(count) + ")" + ".jpg"
+    return image_datetime, image_name
 
 
 def save_image(new_pic):
     # TODO: Organize how the images are saved
     folder_path = get_path_from_root("/IMM/images/")
     jpg_image = PIL_image.fromarray(new_pic)
-    image_path = folder_path + generate_image_name()
+    image_datetime, image_name = generate_image_name()
+    image_path = folder_path + image_name
     jpg_image.save(image_path)
-    return image_path
+    return image_path, image_datetime
 
 
 def get_session_id():
@@ -43,7 +47,7 @@ def get_dummy_session_id():
     return session_id
 
 
-def save_to_database(img_arg, new_pic, file_path):
+def save_to_database(img_arg, new_pic, file_data):
     # time_taken = get_time_taken() ??
 
     session_id = get_dummy_session_id()
@@ -59,7 +63,7 @@ def save_to_database(img_arg, new_pic, file_path):
                   width=width,
                   height=height,
                   img_type=img_type,
-                  file_path=file_path,
+                  file_data=file_data,
                   coordinates=img_arg["coordinates"])
 
     with session_scope() as session:
@@ -97,8 +101,8 @@ class RDSSubThread(Thread):
             if "image_md" in request:
                 # We have a new image
                 new_pic = self.recv_image_array(request["image_md"])
-                img_file_path = save_image(new_pic)
-                save_to_database(request["arg"], new_pic, img_file_path)
+                img_file_data = save_image(new_pic)
+                save_to_database(request["arg"], new_pic, img_file_data)
                 new_pic_notify_gui()
 
             self.RDS_sub_socket.send_json(json.dumps({"msg": "ack"}))
