@@ -1,4 +1,8 @@
-"""A mock simulating the GUI making requests"""
+"""A mock simulating the GUI making requests
+
+If the test is stuck, try removing all databases so it will run on a clean slate.
+
+"""
 import os
 from helper_functions import get_path_from_root
 
