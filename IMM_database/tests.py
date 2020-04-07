@@ -559,7 +559,7 @@ class DroneTester(unittest.TestCase):
 
         check_invalid(Drone())
 
-class SessionRelationTester(unittest.TestCase):
+class RelationTester(unittest.TestCase):
     def setUp(self):
         seed(123)   # Avoid flaky tests by using the same seed every time.
         self.db = get_test_database()
@@ -672,6 +672,40 @@ class SessionRelationTester(unittest.TestCase):
         self.assertTrue(retrieved_images[0] is image)
         self.assertTrue(retrieved_images[0].session is session)
         self.assertFalse(retrieved_images[1] is image)
+        self.assertTrue(retrieved_images[1].session is session)
+
+    def testSessionPrioImageRelation(self):
+        session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
+        prio_image = PrioImage(
+            session_id=1,
+            time_requested=123,
+            status="PENDING",
+            coordinate=Coordinate(lat=3, long=3)
+        )
+        self.session.add(session)
+        self.session.add(prio_image)
+        self.session.commit()
+
+        self.assertTrue(self.session.query(PrioImage).first().session is session,
+            "Wrong session retrieved from image.")
+        self.assertTrue(self.session.query(UserSession).first().prio_images[0] is prio_image,
+            "Wrong image retrieved from session.")
+        
+        session.prio_images.append(PrioImage(
+            time_requested=234,
+            status="CANCELLED",
+            coordinate=Coordinate(lat=1, long=1)     
+        ))
+        self.session.commit()
+
+        self.assertEqual(self.session.query(PrioImage).count(), 2,
+            "Failed to add PrioImage via UserSession.prio_images.")
+        self.assertEqual(len(self.session.query(UserSession).first().prio_images), 2,
+            "Failed to retrieve all images from UserSession.prio_images.")
+        retrieved_images = self.session.query(PrioImage).order_by(PrioImage.id).all()
+        self.assertTrue(retrieved_images[0] is prio_image)
+        self.assertTrue(retrieved_images[0].session is session)
+        self.assertFalse(retrieved_images[1] is prio_image)
         self.assertTrue(retrieved_images[1].session is session)
 
 class DatabaseConcurrencyTester(unittest.TestCase):
