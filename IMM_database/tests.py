@@ -626,6 +626,54 @@ class SessionRelationTester(unittest.TestCase):
         self.assertFalse(retrieved_vertices[1] is vertex)
         self.assertTrue(retrieved_vertices[1].session is session)
 
+    def testSessionImageRelation(self):
+        session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
+        image = Image(
+            session_id=1,
+            time_taken=123,
+            width=100,
+            height=200,
+            type="IR",
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3),
+            file_name="1.jpg"
+        )
+        self.session.add(session)
+        self.session.add(image)
+        self.session.commit()
+
+        self.assertTrue(self.session.query(Image).first().session is session,
+            "Wrong session retrieved from image.")
+        self.assertTrue(self.session.query(UserSession).first().images[0] is image,
+            "Wrong image retrieved from session.")
+        
+        session.images.append(Image(
+            time_taken=234,
+            width=100,
+            height=200,
+            type="IR",
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3),
+            file_name="1.jpg"            
+        ))
+        self.session.commit()
+
+        self.assertEqual(self.session.query(Image).count(), 2,
+            "Failed to add Image via UserSession.images.")
+        self.assertEqual(len(self.session.query(UserSession).first().images), 2,
+            "Failed to retrieve all images from UserSession.images.")
+        retrieved_images = self.session.query(Image).order_by(Image.id).all()
+        self.assertTrue(retrieved_images[0] is image)
+        self.assertTrue(retrieved_images[0].session is session)
+        self.assertFalse(retrieved_images[1] is image)
+        self.assertTrue(retrieved_images[1].session is session)
+
 class DatabaseConcurrencyTester(unittest.TestCase):
 
     def insert_sessions(self, n_sessions):
