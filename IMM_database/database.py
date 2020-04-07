@@ -23,18 +23,18 @@ Base = declarative_base()
 # This class is inspired by the SQLAlchemy tutorial.
 # https://docs.sqlalchemy.org/en/13/orm/composites.html
 class Coordinate:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, lat, long):
+        self.lat = lat
+        self.long = long
     
     def __composite_values__(self):
-        return self.x, self.y
+        return self.lat, self.long
 
     def __repr__(self):
-        return "Coordinate(x={}, y={})".format(self.x, self.y)
+        return "Coordinate(lat={}, long={})".format(self.lat, self.long)
 
     def __eq__(self, other):
-        return isinstance(other, Coordinate) and self.x == other.x and self.y == other.y
+        return isinstance(other, Coordinate) and self.lat == other.lat and self.long == other.long
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -58,19 +58,19 @@ class Client(Base):
 
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
-    __up_left_x = Column(Float, nullable=False)
-    __up_left_y = Column(Float, nullable=False)
-    __up_right_x = Column(Float, nullable=False)
-    __up_right_y = Column(Float, nullable=False)
-    __down_right_x = Column(Float, nullable=False)
-    __down_right_y = Column(Float, nullable=False)
-    __down_left_x = Column(Float, nullable=False)
-    __down_left_y = Column(Float, nullable=False)
+    __up_left_lat = Column(Float, nullable=False)
+    __up_left_long = Column(Float, nullable=False)
+    __up_right_lat = Column(Float, nullable=False)
+    __up_right_long = Column(Float, nullable=False)
+    __down_right_lat = Column(Float, nullable=False)
+    __down_right_long = Column(Float, nullable=False)
+    __down_left_lat = Column(Float, nullable=False)
+    __down_left_long = Column(Float, nullable=False)
 
-    up_left = composite(Coordinate, __up_left_x, __up_left_y)
-    up_right = composite(Coordinate, __up_right_x, __up_right_y)
-    down_right = composite(Coordinate, __down_right_x, __down_right_y)
-    down_left = composite(Coordinate, __down_left_x, __down_left_y)
+    up_left = composite(Coordinate, __up_left_lat, __up_left_long)
+    up_right = composite(Coordinate, __up_right_lat, __up_right_long)
+    down_right = composite(Coordinate, __down_right_lat, __down_right_long)
+    down_left = composite(Coordinate, __down_left_lat, __down_left_long)
 
     session = relationship("UserSession", back_populates="clients")
 
@@ -87,10 +87,10 @@ class AreaVertex(Base):
 
     session_id = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
     vertex_no = Column(Integer, primary_key=True, nullable=False)
-    __coordinate_x = Column(Float, nullable=False)
-    __coordinate_y = Column(Float, nullable=False)
+    __coordinate_lat = Column(Float, nullable=False)
+    __coordinate_long = Column(Float, nullable=False)
     
-    coordinate = composite(Coordinate, __coordinate_x, __coordinate_y)
+    coordinate = composite(Coordinate, __coordinate_lat, __coordinate_long)
 
     session = relationship("UserSession", back_populates="area_vertices")
 
@@ -111,24 +111,24 @@ class Image(Base):
     width = Column(Integer, nullable=False)
     height = Column(Integer, nullable=False)
     type = Column(String, nullable=False)
-    __up_left_x = Column(Float, nullable=False)
-    __up_left_y = Column(Float, nullable=False)
-    __up_right_x = Column(Float, nullable=False)
-    __up_right_y = Column(Float, nullable=False)
-    __down_right_x = Column(Float, nullable=False)
-    __down_right_y = Column(Float, nullable=False)
-    __down_left_x = Column(Float, nullable=False)
-    __down_left_y = Column(Float, nullable=False)
-    __center_x = Column(Float, nullable=False)
-    __center_y = Column(Float, nullable=False)
+    __up_left_lat = Column(Float, nullable=False)
+    __up_left_long = Column(Float, nullable=False)
+    __up_right_lat = Column(Float, nullable=False)
+    __up_right_long = Column(Float, nullable=False)
+    __down_right_lat = Column(Float, nullable=False)
+    __down_right_long = Column(Float, nullable=False)
+    __down_left_lat = Column(Float, nullable=False)
+    __down_left_long = Column(Float, nullable=False)
+    __center_lat = Column(Float, nullable=False)
+    __center_long = Column(Float, nullable=False)
     file_path = Column(String, nullable=False)
     file_name = Column(String, nullable=False)
 
-    up_left = composite(Coordinate, __up_left_x, __up_left_y)
-    up_right = composite(Coordinate, __up_right_x, __up_right_y)
-    down_right = composite(Coordinate, __down_right_x, __down_right_y)
-    down_left = composite(Coordinate, __down_left_x, __down_left_y)
-    center = composite(Coordinate, __center_x, __center_y)
+    up_left = composite(Coordinate, __up_left_lat, __up_left_long)
+    up_right = composite(Coordinate, __up_right_lat, __up_right_long)
+    down_right = composite(Coordinate, __down_right_lat, __down_right_long)
+    down_left = composite(Coordinate, __down_left_lat, __down_left_long)
+    center = composite(Coordinate, __center_lat, __center_long)
 
     session = relationship("UserSession", back_populates="images")
 
@@ -145,16 +145,16 @@ class Image(Base):
         self.file_path = file_data[0]
         self.file_name = file_data[1]
 
-        self.__up_left_x = coordinates["up_left"]["long"]
-        self.__up_left_y = coordinates["up_left"]["lat"]
-        self.__up_right_x = coordinates["up_right"]["long"]
-        self.__up_right_y = coordinates["up_right"]["lat"]
-        self.__down_right_x = coordinates["down_right"]["long"]
-        self.__down_right_y = coordinates["down_right"]["lat"]
-        self.__down_left_x = coordinates["down_left"]["long"]
-        self.__down_left_y = coordinates["down_left"]["lat"]
-        self.__center_x = coordinates["down_left"]["long"]
-        self.__center_y = coordinates["down_left"]["lat"]
+        self.__up_left_lat = coordinates["up_left"]["lat"]
+        self.__up_left_long = coordinates["up_left"]["long"]
+        self.__up_right_lat = coordinates["up_right"]["lat"]
+        self.__up_right_long = coordinates["up_right"]["long"]
+        self.__down_right_lat = coordinates["down_right"]["lat"]
+        self.__down_right_long = coordinates["down_right"]["long"]
+        self.__down_left_lat = coordinates["down_left"]["lat"]
+        self.__down_left_long = coordinates["down_left"]["long"]
+        self.__center_lat = coordinates["down_left"]["lat"]
+        self.__center_long = coordinates["down_left"]["long"]
 
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
@@ -169,10 +169,10 @@ class PrioImage(Base):
     status = Column(String, nullable=False)
     image_id = Column(Integer, ForeignKey('images.id'), nullable=True)
     eta = Column(Integer, nullable=True)
-    __coordinate_x = Column(Float, nullable=False)
-    __coordinate_y = Column(Float, nullable=False)
+    __coordinate_lat = Column(Float, nullable=False)
+    __coordinate_long = Column(Float, nullable=False)
     
-    coordinate = composite(Coordinate, __coordinate_x, __coordinate_y)
+    coordinate = composite(Coordinate, __coordinate_lat, __coordinate_long)
     
     session = relationship("UserSession", back_populates="prio_images")
     image = relationship("Image", back_populates="prio_image")
