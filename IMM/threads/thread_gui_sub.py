@@ -1,5 +1,5 @@
 from IMM.IMM_thread_config import context, zmq, gui_sub_socket_url
-from IMM.helper_functions import check_request
+from helper_functions import check_request
 from threading import Thread
 from IMM.IMM_app import rds_pub_thread
 import json
