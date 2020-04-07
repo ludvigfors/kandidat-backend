@@ -20,7 +20,7 @@ class DroneThread(Thread):
     def __init__(self):
         super().__init__()
         self.image_queue = []
-        self.FLYING_TIME = 2
+        self.FLYING_TIME = 1
         self.count = 0
         self.new_image = False
 
@@ -163,6 +163,8 @@ class IMMRepThread(Thread):
 
 def init_db_and_add_image():
     """Inserts a test image into the IMM_database"""
+
+
     coord = {
                 "up_left":
                     {
@@ -189,13 +191,6 @@ def init_db_and_add_image():
                          "long":16
                      }
              }
-
-    """
-    if platform.system() == "Windows":
-        testFilePath = os.path.dirname(__file__) + r"\images\testimage.jpg"
-    else:
-        testFilePath = os.path.dirname(__file__)+ r"/images/testimage.jpg"
-    """
     testFilePath = get_path_from_root("/RDS_emulator/images/testimage.jpg")
     image = Image(coord, testFilePath)
     session.add(image)

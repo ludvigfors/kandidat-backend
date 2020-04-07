@@ -4,7 +4,7 @@ from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url
 from threading import Thread
 from helper_functions import check_request
 from IMM.IMM_app import gui_pub_thread
-from IMM_database.database import Image, PrioImage, session_scope
+from IMM_database.database import Image, PrioImage, session_scope, UserSession
 from helper_functions import get_path_from_root
 import json, datetime
 
@@ -25,12 +25,28 @@ def save_image(new_pic):
     return image_path
 
 
+def get_session_id():
+    pass
+
+
+def get_dummy_session_id():
+    session_id = 1
+    with session_scope() as session:
+        if len(session.query(UserSession).all()) == 0:
+            dummy_session = UserSession(start_time=100, drone_mode="AUTO")
+            session.add(dummy_session)
+
+    with session_scope() as session:
+        session_list = session.query(UserSession).all()
+        session_id = session_list[0].id
+
+    return session_id
+
+
 def save_to_database(img_arg, new_pic, file_path):
-    i = 0
-    # session_id = get_session_id()
     # time_taken = get_time_taken() ??
 
-    session_id = 0  # Dummy data
+    session_id = get_dummy_session_id()
     time_taken = 100  # Dummy data
 
     # Gather image info
@@ -38,7 +54,13 @@ def save_to_database(img_arg, new_pic, file_path):
     height = len(new_pic)
     img_type = img_arg["type"]
 
-    image = Image(session_id, time_taken, width, height, img_type, file_path, img_arg["coordinates"])
+    image = Image(session_id=session_id,
+                  time_taken=time_taken,
+                  width=width,
+                  height=height,
+                  img_type=img_type,
+                  file_path=file_path,
+                  coordinates=img_arg["coordinates"])
 
     with session_scope() as session:
         session.add(image)
