@@ -13,7 +13,7 @@ def generate_image_name():
     now = datetime.datetime.now()
     image_datetime = now.strftime("%Y-%m-%d_%H-%M-%S")
     with session_scope() as session:
-        count = len(session.query(Image).filter_by(file_name=image_datetime).all())
+        count = session.query(Image).filter_by(file_name=image_datetime).count()
 
     image_name = image_datetime + "_(" + str(count) + ")" + ".jpg"
     return image_datetime, image_name
@@ -36,13 +36,12 @@ def get_session_id():
 def get_dummy_session_id():
     session_id = 1
     with session_scope() as session:
-        if len(session.query(UserSession).all()) == 0:
+        if session.query(UserSession).count() == 0:
             dummy_session = UserSession(start_time=100, drone_mode="AUTO")
             session.add(dummy_session)
 
     with session_scope() as session:
-        session_list = session.query(UserSession).all()
-        session_id = session_list[0].id
+        session_id = session.query(UserSession).first().id
 
     return session_id
 

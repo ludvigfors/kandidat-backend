@@ -181,13 +181,13 @@ class AreaVertexTester(unittest.TestCase):
         self.session.add(vertex)
         self.session.commit()
         
-        self.assertEqual(len(self.session.query(AreaVertex).all()), 1,
+        self.assertEqual(self.session.query(AreaVertex).count(), 1,
             "Wrong number of entries.")
         self.assertEqual(self.session.query(AreaVertex).first().coordinate, Coordinate(1.5, 0.23),
             "Wrong vertex retrieved.")
         self.assertTrue(self.session.query(AreaVertex).filter(AreaVertex.coordinate == Coordinate(1.5, 0.23)).first() is vertex,
             "Failed to filter by coordinate.")
-        self.assertEqual(len(self.session.query(AreaVertex).filter(AreaVertex.coordinate == Coordinate(1.5, 1.5)).all()), 0,
+        self.assertEqual(self.session.query(AreaVertex).filter(AreaVertex.coordinate == Coordinate(1.5, 1.5)).count(), 0,
             "Failed to filter by nonexistant property.")
 
     def test_multiple_unique_entries(self):
@@ -200,9 +200,9 @@ class AreaVertexTester(unittest.TestCase):
                 self.session.add(vertex)
         self.session.commit()
 
-        vertices_in_database = self.session.query(AreaVertex).\
-            order_by(AreaVertex.session_id, AreaVertex.vertex_no).all()
-        self.assertEqual(len(vertices_in_database), sum(n_vertices_for_session),
+        n_vertices_in_database = self.session.query(AreaVertex).\
+            order_by(AreaVertex.session_id, AreaVertex.vertex_no).count()
+        self.assertEqual(n_vertices_in_database, sum(n_vertices_for_session),
             "Incorrect number of entries saved in database.")
         for session_id in range(self.SESSIONS):
             with self.subTest(i=session_id):
@@ -213,8 +213,8 @@ class AreaVertexTester(unittest.TestCase):
                     with self.subTest(i=i):
                         self.assertTrue(vertices[session_id][i] is session_vertices[i],
                             "Retrieved vertex is not the same object as created vertex.")
-        self.assertEqual(len(self.session.query(AreaVertex).\
-            filter(AreaVertex.coordinate == Coordinate(-1, -1)).all()), 0,
+        self.assertEqual(self.session.query(AreaVertex).\
+            filter(AreaVertex.coordinate == Coordinate(-1, -1)).count(), 0,
             "Found nonexistant vertex.")
 
     def test_not_nullable(self):
@@ -238,9 +238,11 @@ class ImageTester(unittest.TestCase):
         self.db = get_test_database()
         self.session = self.db.get_session()
         for _i in range(self.SESSIONS):
-            self.session.add(UserSession(start_time=randint(100000, 200000),
-                                         end_time=randint(200000, 300000),
-                                         drone_mode="AUTO"))
+            self.session.add(UserSession(
+                start_time=randint(100000, 200000),
+                end_time=randint(200000, 300000),
+                drone_mode="AUTO"
+            ))
         self.session.commit()
 
     def tearDown(self):
@@ -261,13 +263,13 @@ class ImageTester(unittest.TestCase):
         self.session.add(image)
         self.session.commit()
         
-        self.assertEqual(len(self.session.query(Image).all()), 1,
+        self.assertEqual(self.session.query(Image).count(), 1,
             "Wrong number of entries.")
         self.assertEqual(self.session.query(Image.width).first()[0], 480,
             "Wrong width retrieved.")
         self.assertTrue(self.session.query(Image).filter(Image.height == 360).first() is image,
             "Failed to filter by coordinate.")
-        self.assertEqual(len(self.session.query(Image).filter(Image.type == "LASERBEAM").all()), 0,
+        self.assertEqual(self.session.query(Image).filter(Image.type == "LASERBEAM").count(), 0,
             "Failed to filter by nonexistant property.")
 
     def test_multiple_unique_entries(self):
@@ -301,20 +303,20 @@ class ImageTester(unittest.TestCase):
             self.session.add(image)
         self.session.commit()
 
-        self.assertEqual(len(self.session.query(Image).all()), n_images,
+        self.assertEqual(self.session.query(Image).count(), n_images,
             "Incorrect number of entries saved in database.")
         for session_id in range(self.SESSIONS):
             with self.subTest(i=session_id):
-                session_images = self.session.query(Image).filter(Image.session_id == session_id).all()
-                self.assertEqual(len(session_images), session.count(session_id),
+                n_session_images = self.session.query(Image).filter(Image.session_id == session_id).count()
+                self.assertEqual(n_session_images, session.count(session_id),
                     "Incorrect number of images retrieved for session.")
         images_in_database = self.session.query(Image).order_by(Image.id).all()
         for i in range(n_images):
             with self.subTest(i=i):
                 self.assertTrue(images_in_database[i] is images[i],
                     "Retrieved Image is not the same object as inserted Image.")
-        self.assertEqual(len(self.session.query(Image).\
-            filter(Image.width == 0).all()), 0,
+        self.assertEqual(self.session.query(Image).\
+            filter(Image.width == 0).count(), 0,
             "Found nonexistant vertex.")
 
     def test_not_nullable(self):
@@ -403,9 +405,11 @@ class PrioImageTester(unittest.TestCase):
         self.db = get_test_database()
         self.session = self.db.get_session()
         for _i in range(self.SESSIONS):
-            self.session.add(UserSession(start_time=randint(100000, 200000),
-                                         end_time=randint(200000, 300000),
-                                         drone_mode="AUTO"))
+            self.session.add(UserSession(
+                start_time=randint(100000, 200000),
+                end_time=randint(200000, 300000),
+                drone_mode="AUTO"
+            ))
         self.session.commit()
 
     def tearDown(self):
@@ -421,15 +425,15 @@ class PrioImageTester(unittest.TestCase):
         self.session.add(image)
         self.session.commit()
         
-        self.assertEqual(len(self.session.query(PrioImage).all()), 1,
+        self.assertEqual(self.session.query(PrioImage).count(), 1,
             "Wrong number of entries.")
         self.assertEqual(self.session.query(PrioImage.status).first()[0],
             "PENDING", "Wrong vertex retrieved.")
         self.assertTrue(self.session.query(PrioImage).\
             filter(PrioImage.status == "PENDING").first() is image,
             "Failed to filter by status.")
-        self.assertEqual(len(self.session.query(PrioImage).\
-            filter(PrioImage.time_requested == 0).all()), 0,
+        self.assertEqual(self.session.query(PrioImage).\
+            filter(PrioImage.time_requested == 0).count(), 0,
             "Failed to filter by nonexistant property.")
 
     def test_multiple_unique_entries(self):
@@ -446,14 +450,14 @@ class PrioImageTester(unittest.TestCase):
             self.session.add(image)
         self.session.commit()
 
-        images_in_database = self.session.query(PrioImage).order_by(PrioImage.id).all()
-        self.assertEqual(len(images_in_database), n_images,
+        n_images_in_database = self.session.query(PrioImage).order_by(PrioImage.id).count()
+        self.assertEqual(n_images_in_database, n_images,
             "Incorrect number of entries saved in database.")
         for session_id in range(self.SESSIONS):
             with self.subTest(i=session_id):
-                session_images = self.session.query(PrioImage).\
-                    filter(PrioImage.session_id == session_id).all()
-                self.assertEqual(len(session_images),
+                n_session_images = self.session.query(PrioImage).\
+                    filter(PrioImage.session_id == session_id).count()
+                self.assertEqual(n_session_images,
                     session_ids.count(session_id),
                     "Incorrect number of images retrieved for session.")
         for i in range(n_images):
@@ -461,8 +465,8 @@ class PrioImageTester(unittest.TestCase):
                 self.assertTrue(self.session.query(PrioImage).\
                     filter(PrioImage.id == i + 1).first() is images[i],
                     "Retrieved image is not the same object as created image.")
-        self.assertEqual(len(self.session.query(PrioImage).\
-            filter(PrioImage.session_id == self.SESSIONS + 1).all()), 0,
+        self.assertEqual(self.session.query(PrioImage).\
+            filter(PrioImage.session_id == self.SESSIONS + 1).count(), 0,
             "Found nonexistant image.")
 
     def test_not_nullable(self):
@@ -484,7 +488,7 @@ class DroneTester(unittest.TestCase):
         seed(123)   # Avoid flaky tests by using the same seed every time.
         self.db = get_test_database()
         self.session = self.db.get_session()
-        for i in range(self.SESSIONS):
+        for _i in range(self.SESSIONS):
             self.session.add(UserSession(
                 start_time=randint(100000, 200000),
                 end_time=randint(200000, 300000),
@@ -504,15 +508,15 @@ class DroneTester(unittest.TestCase):
         self.session.add(drone)
         self.session.commit()
         
-        self.assertEqual(len(self.session.query(Drone).all()), 1,
+        self.assertEqual(self.session.query(Drone).count(), 1,
             "Wrong number of entries.")
         self.assertTrue(self.session.query(Drone).first() is drone,
             "Wrong drone retrieved.")
         self.assertTrue(self.session.query(Drone).\
             filter(Drone.session_id == 1).first() is drone,
             "Failed to filter by status.")
-        self.assertEqual(len(self.session.query(Drone).\
-            filter(Drone.eta == 2000).all()), 0,
+        self.assertEqual(self.session.query(Drone).\
+            filter(Drone.eta == 2000).count(), 0,
             "Failed to filter by nonexistant property.")
 
     def test_multiple_unique_entries(self):
@@ -527,14 +531,14 @@ class DroneTester(unittest.TestCase):
             self.session.add(drone)
         self.session.commit()
 
-        drones_in_database = self.session.query(Drone).all()
-        self.assertEqual(len(drones_in_database), n_drones,
+        n_drones_in_database = self.session.query(Drone).count()
+        self.assertEqual(n_drones_in_database, n_drones,
             "Incorrect number of entries saved in database.")
         for session_id in range(self.SESSIONS):
             with self.subTest(i=session_id):
-                session_drones = self.session.query(Drone).\
-                    filter(Drone.session_id == session_id).all()
-                self.assertEqual(len(session_drones),
+                n_session_drones = self.session.query(Drone).\
+                    filter(Drone.session_id == session_id).count()
+                self.assertEqual(n_session_drones,
                     session_ids.count(session_id),
                     "Incorrect number of drones retrieved for session.")
         for i in range(n_drones):
@@ -542,8 +546,8 @@ class DroneTester(unittest.TestCase):
                 self.assertTrue(self.session.query(Drone).\
                     filter(Drone.id == i + 1).first() is drones[i],
                     "Retrieved drone is not the same object as created drone.")
-        self.assertEqual(len(self.session.query(Drone).\
-            filter(Drone.session_id == self.SESSIONS + 1).all()), 0,
+        self.assertEqual(self.session.query(Drone).\
+            filter(Drone.session_id == self.SESSIONS + 1).count(), 0,
             "Found nonexistant drone.")
 
     def test_not_nullable(self):
@@ -566,9 +570,11 @@ class SessionRelationTester(unittest.TestCase):
 
     def testSessionClientRelation(self):
         session = UserSession(id=1, start_time=100, end_time=200, drone_mode="AUTO")
-        client = Client(session_id=session.id,
+        client = Client(
+            session_id=session.id,
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
-            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1))
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1)
+        )
         self.session.add(session)
         self.session.add(client)
         self.session.commit()
