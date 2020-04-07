@@ -19,6 +19,9 @@ class CoordinateTester(unittest.TestCase):
         self.assertNotEqual(Coordinate(1, 1), None)
         self.assertNotEqual(Coordinate(1, 1), self)
 
+    def test_repr(self):
+        Coordinate(1, 1).__repr__()
+
 class UserSessionTester(unittest.TestCase):
     
     def setUp(self):
@@ -68,6 +71,9 @@ class UserSessionTester(unittest.TestCase):
         self.assertEqual(len(self.session.query(UserSession).\
             filter(UserSession.end_time != None).all()), 0,
             "Found nonexistant session.")
+    
+    def test_repr(self):
+        UserSession(start_time=123, drone_mode="MAN").__repr__()
 
     def test_not_nullable(self):
         def check_invalid(session):
@@ -140,6 +146,15 @@ class ClientTester(unittest.TestCase):
         self.assertEqual(len(self.session.query(Client).\
             filter(Client.up_left == Coordinate(0, 0)).all()), 0,
             "Found nonexistant session.")
+
+    def test_repr(self):
+        Client(
+            session_id=1,
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1)
+        ).__repr__()
 
     def test_not_nullable(self):
         def check_invalid(client):
@@ -216,6 +231,9 @@ class AreaVertexTester(unittest.TestCase):
         self.assertEqual(self.session.query(AreaVertex).\
             filter(AreaVertex.coordinate == Coordinate(-1, -1)).count(), 0,
             "Found nonexistant vertex.")
+    
+    def test_repr(self):
+        AreaVertex(session_id=1, vertex_no=1, coordinate=Coordinate(1, 1)).__repr__()
 
     def test_not_nullable(self):
         def check_invalid(vertex):
@@ -318,6 +336,21 @@ class ImageTester(unittest.TestCase):
         self.assertEqual(self.session.query(Image).\
             filter(Image.width == 0).count(), 0,
             "Found nonexistant vertex.")
+
+    def test_repr(self):
+        Image(
+            session_id=1,
+            time_taken=123,
+            width=100,
+            height=200,
+            type="IR",
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3),
+            file_name="1.jpg"
+        ).__repr__()
 
     def test_not_nullable(self):
         def check_invalid(image):
@@ -469,6 +502,13 @@ class PrioImageTester(unittest.TestCase):
             filter(PrioImage.session_id == self.SESSIONS + 1).count(), 0,
             "Found nonexistant image.")
 
+    def test_repr(self):
+        PrioImage(
+            session_id=1,
+            time_requested=123,
+            status="PENDING",
+        ).__repr__()
+
     def test_not_nullable(self):
         def check_invalid(image):
             self.session.add(image)
@@ -549,6 +589,9 @@ class DroneTester(unittest.TestCase):
         self.assertEqual(self.session.query(Drone).\
             filter(Drone.session_id == self.SESSIONS + 1).count(), 0,
             "Found nonexistant drone.")
+
+    def test_repr(self):
+        Drone(session_id=1).__repr__()
 
     def test_not_nullable(self):
         def check_invalid(image):
