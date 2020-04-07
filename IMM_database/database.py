@@ -136,12 +136,12 @@ class Image(Base):
         return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
             self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
 
-    def __init__(self, session_id, time_taken, width, height, type, file_data, coordinates):
+    def __init__(self, session_id, time_taken, width, height, img_type, file_data, coordinates):
         self.session_id = session_id
         self.time_taken = time_taken
         self.width = width
         self.height = height
-        self.type = type
+        self.type = img_type
         self.file_path = file_data[0]
         self.file_name = file_data[1]
 
