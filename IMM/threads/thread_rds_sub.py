@@ -4,7 +4,7 @@ from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url
 from threading import Thread
 from helper_functions import check_request
 from IMM.IMM_app import gui_pub_thread
-from IMM_database.database import Image, PrioImage, session_scope, UserSession
+from IMM_database.database import Image, PrioImage, session_scope, UserSession, Coordinate
 from helper_functions import get_path_from_root
 import json, datetime, os
 
@@ -48,6 +48,10 @@ def get_dummy_session_id():
 
 
 def save_to_database(img_arg, new_pic, file_data):
+
+    def coordinate_from_json(json):
+        return Coordinate(lat=json["lat"], long=json["long"])
+
     # time_taken = get_time_taken() ??
 
     session_id = get_dummy_session_id()
@@ -57,14 +61,25 @@ def save_to_database(img_arg, new_pic, file_data):
     width = len(new_pic[0])
     height = len(new_pic)
     img_type = img_arg["type"]
+    up_left = coordinate_from_json(img_arg["coordinates"]["up_left"])
+    up_right = coordinate_from_json(img_arg["coordinates"]["up_right"])
+    down_right = coordinate_from_json(img_arg["coordinates"]["down_right"])
+    down_left = coordinate_from_json(img_arg["coordinates"]["down_left"])
+    center = coordinate_from_json(img_arg["coordinates"]["center"])
 
-    image = Image(session_id=session_id,
-                  time_taken=time_taken,
-                  width=width,
-                  height=height,
-                  img_type=img_type,
-                  file_data=file_data,
-                  coordinates=img_arg["coordinates"])
+    image = Image(
+        session_id=session_id,
+        time_taken=time_taken,
+        width=width,
+        height=height,
+        img_type=img_type,
+        file_data=file_data,
+        up_left=up_left,
+        up_right=up_right,
+        down_right=down_right,
+        down_left=down_left,
+        center=center
+    )
 
     with session_scope() as session:
         session.add(image)
