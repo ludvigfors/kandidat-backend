@@ -43,7 +43,7 @@ class GuiSubThread(Thread):
             elif request["fcn"] == "que_ETA":
                 self.gui_sub_socket.send_json(self.queue_eta())
 
-            elif request["fcn"] == "quit":
+            elif request["fcn"] == "disconnect":
                 self.gui_sub_socket.send_json(self.disconnect())
 
             else:
@@ -78,8 +78,8 @@ class GuiSubThread(Thread):
         request = {
                     "fcn" : "quit",
                   }
-
-        rds_pub_thread.add_request(request_to_RDS)
+                  
+        rds_pub_thread.add_request(request)
         return {"fcn":"ack", "name":"disconnect"}
 
     def set_mode(self):

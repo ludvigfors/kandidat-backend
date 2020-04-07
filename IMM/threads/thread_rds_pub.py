@@ -68,4 +68,4 @@ class RDSPubThread(Thread):
 
     def quit(self):
         request = {"fcn":"quit", "arg": ""}
-        self.RDS_req_socket.send_json(json.dumps(request))
+        self.RDS_req_socket.send_json(request)
