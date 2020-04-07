@@ -176,7 +176,7 @@ class Drone(Base):
     session = relationship("UserSession", back_populates="drones")
 
 
-UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates="session")
+UserSession.drones = relationship("Drone", order_by=Drone.id, back_populates="session")
 
 
 class Database:
