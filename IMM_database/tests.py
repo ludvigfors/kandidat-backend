@@ -19,6 +19,31 @@ class CoordinateTester(unittest.TestCase):
         self.assertNotEqual(Coordinate(1, 1), None)
         self.assertNotEqual(Coordinate(1, 1), self)
 
+    def test_composite_values(self):
+        self.assertEqual(Coordinate(1, 5).__composite_values__(), (1, 5))
+
+    def test_eq(self):
+        coord = Coordinate(1, 5)
+        self.assertTrue(coord.__eq__(coord))
+        self.assertTrue(coord.__eq__(Coordinate(1, 5)))
+        self.assertFalse(coord.__eq__(Coordinate(10, -2)))
+        self.assertFalse(coord.__eq__(Coordinate(1, -2)))
+        self.assertFalse(coord.__eq__(Coordinate(2, 5)))
+        self.assertFalse(coord.__eq__(None))
+        self.assertFalse(coord.__eq__("test"))
+        self.assertTrue(coord.__eq__(Coordinate(1, 5.0)))
+
+    def test_ne(self):
+        coord = Coordinate(1, 5)
+        self.assertFalse(coord.__ne__(coord))
+        self.assertFalse(coord.__ne__(Coordinate(1, 5)))
+        self.assertTrue(coord.__ne__(Coordinate(10, -2)))
+        self.assertTrue(coord.__ne__(Coordinate(1, -2)))
+        self.assertTrue(coord.__ne__(Coordinate(2, 5)))
+        self.assertTrue(coord.__ne__(None))
+        self.assertTrue(coord.__ne__("test"))
+        self.assertFalse(coord.__ne__(Coordinate(1, 5.0)))
+
     def test_repr(self):
         Coordinate(1, 1).__repr__()
 
