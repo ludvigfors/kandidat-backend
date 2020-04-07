@@ -1,10 +1,20 @@
-"""A mock simulating the GUI making requests"""
+"""A mock simulating the GUI making requests
+
+If the test is stuck, try removing all databases so it will run on a clean slate.
+
+"""
+import os
+from helper_functions import get_path_from_root
+
+# Checks if the rds_database exists before the start of the file
+db_exists = os.path.exists(get_path_from_root("/RDS_emulator/rds_database.db"))
 from RDS_emulator.RDS_app import *
 from IMM.IMM_app import *
 context = zmq.Context()
 
-# Run this the first time the test goes to add the IMM_database (images.db)
-#init_db_and_add_image()
+# Run this the first time the test goes to add the rds_database.
+if not db_exists:
+    init_db_and_add_image()
 
 
 sub_socket_url = "tcp://localhost:4570"
@@ -64,7 +74,7 @@ class PubThread(Thread):
             }
         }
 
-        print("Sending add poi")
+        print("Sending poi")
         self.req_socket.send_json(json.dumps(req3))
         resp = self.req_socket.recv()
         # print(resp)

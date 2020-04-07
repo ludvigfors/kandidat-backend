@@ -1,9 +1,15 @@
+import platform
+
+import numpy
+import os
 from RDS_emulator.database import Image, session
 from threading import Thread
+from PIL import Image as PIL_image
 import time
 import json
 import zmq
 from helper_functions import get_path_from_root
+
 context = zmq.Context()
 
 class DroneThread(Thread):
@@ -14,7 +20,7 @@ class DroneThread(Thread):
     def __init__(self):
         super().__init__()
         self.image_queue = []
-        self.FLYING_TIME = 4
+        self.FLYING_TIME = 1
         self.count = 0
         self.new_image = False
 
@@ -59,13 +65,15 @@ class IMMPubThread(Thread):
     def run(self):
         while True:
             if drone_thread.new_image:
-                self.socket.send_json(self.new_pic(drone_thread.pop_first_image()))
+                self.new_pic(drone_thread.pop_first_image())
                 response = self.socket.recv_json()
                 # print(response)
 
     def new_pic(self, image):
         "Called when a new picture is taken, send this to the client that wanted it."
-        res = {
+
+        A = numpy.array(PIL_image.open(image.image_path))
+        message = {
             "fcn": "new_pic",
             "arg": {
                 "drone_id": "one",
@@ -74,8 +82,18 @@ class IMMPubThread(Thread):
                 "coordinates": image.coordinates
             }
         }
+        self.send_array(message, A)
 
-        return res
+    def send_array(self, metadata, A, flags=0, copy=True, track=False):
+        image_md = dict(
+            dtype=str(A.dtype),
+            shape=A.shape,
+        )
+
+        metadata["image_md"] = image_md
+
+        self.socket.send_json(metadata, flags | zmq.SNDMORE)
+        self.socket.send(A, flags, copy=copy, track=track)
 
 
 class IMMSubThread(Thread):
@@ -145,6 +163,8 @@ class IMMRepThread(Thread):
 
 def init_db_and_add_image():
     """Inserts a test image into the IMM_database"""
+
+
     coord = {
                 "up_left":
                     {
