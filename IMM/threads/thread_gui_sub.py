@@ -43,15 +43,15 @@ class GuiSubThread(Thread):
             elif request["fcn"] == "que_ETA":
                 self.gui_sub_socket.send_json(self.queue_eta())
 
-            elif request["fcn"] == "quit":
+            elif request["fcn"] == "disconnect":
                 self.gui_sub_socket.send_json(self.disconnect())
 
             else:
                 self.gui_sub_socket.send_json(json.dumps({"msg": "nothing happened"}))
 
     def connect(self):
-        # TODO: Implement this
-        pass
+        # Unclear what this should do? Issue: #43
+        return {"fcn":"ack", "name":"connect"}
 
     def set_area(self):
         # TODO: Implement this
@@ -74,8 +74,13 @@ class GuiSubThread(Thread):
         return {"msg":"poi added"}
 
     def disconnect(self):
-        # TODO: Implement this
-        pass
+        """Inform RDS that last GUI client disconneted"""
+        request = {
+                    "fcn" : "quit",
+                  }
+                  
+        rds_pub_thread.add_request(request)
+        return {"fcn":"ack", "name":"disconnect"}
 
     def set_mode(self):
         # TODO: Implement this
@@ -94,7 +99,3 @@ class GuiSubThread(Thread):
     def get_image_by_id(self, request):
         """Get the image from the IMM_database with the specified ID"""
         pass
-
-
-
-
