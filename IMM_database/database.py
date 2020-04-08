@@ -1,11 +1,16 @@
-from sqlalchemy import create_engine
+import os
+
+from string import Formatter
+
+from sqlalchemy import create_engine, event
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy import Integer, Float, String
-
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm import composite, relationship
-
 from sqlalchemy.ext.declarative import declarative_base
+
+import sqlite3
 
 from contextlib import contextmanager
 
@@ -13,26 +18,39 @@ from threading import Lock
 
 from helper_functions import get_path_from_root
 
-DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
-
+__PRODUCTION_DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
+__TEST_DATABASE_FILE_PATH = get_path_from_root("/IMM_database/test.db")
 
 Base = declarative_base()
+
+# This formatter is used to automatically handle formatting of None values.
+class NoneFormatter(Formatter):
+    def __init__(self, namespace={}):
+        super().__init__()
+        self.namespace = namespace
+
+    def format_field(self, value, format_spec):
+        if value == None:
+            return "NULL"
+        else:
+            return super().format_field(value, format_spec)
+
 
 # This class is inspired by the SQLAlchemy tutorial.
 # https://docs.sqlalchemy.org/en/13/orm/composites.html
 class Coordinate:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, lat, long):
+        self.lat = lat
+        self.long = long
     
     def __composite_values__(self):
-        return self.x, self.y
+        return self.lat, self.long
 
     def __repr__(self):
-        return "Coordinate(x={}, y={})".format(self.x, self.y)
+        return NoneFormatter().format("Coordinate(lat={}, long={})", self.lat, self.long)
 
     def __eq__(self, other):
-        return isinstance(other, Coordinate) and self.x == other.x and self.y == other.y
+        return isinstance(other, Coordinate) and self.lat == other.lat and self.long == other.long
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -47,7 +65,7 @@ class UserSession(Base):
     drone_mode = Column(String, nullable=False)
 
     def __repr__(self):
-        return '<UserSession(id={0:6d}, start_time={1}, end_time={2}, drone_mode={3}'.format(
+        return NoneFormatter().format('<UserSession(id={:6d}, start_time={}, end_time={}, drone_mode={}', 
             self.id, self.start_time, self.end_time, self.drone_mode)
 
 
@@ -56,25 +74,28 @@ class Client(Base):
 
     id = Column(Integer, primary_key=True)
     session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
-    __up_left_x = Column(Float, nullable=False)
-    __up_left_y = Column(Float, nullable=False)
-    __up_right_x = Column(Float, nullable=False)
-    __up_right_y = Column(Float, nullable=False)
-    __down_right_x = Column(Float, nullable=False)
-    __down_right_y = Column(Float, nullable=False)
-    __down_left_x = Column(Float, nullable=False)
-    __down_left_y = Column(Float, nullable=False)
+    __up_left_lat = Column(Float, nullable=True)
+    __up_left_long = Column(Float, nullable=True)
+    __up_right_lat = Column(Float, nullable=True)
+    __up_right_long = Column(Float, nullable=True)
+    __down_right_lat = Column(Float, nullable=True)
+    __down_right_long = Column(Float, nullable=True)
+    __down_left_lat = Column(Float, nullable=True)
+    __down_left_long = Column(Float, nullable=True)
+    __center_lat = Column(Float, nullable=True)
+    __center_long = Column(Float, nullable=True)
 
-    up_left = composite(Coordinate, __up_left_x, __up_left_y)
-    up_right = composite(Coordinate, __up_right_x, __up_right_y)
-    down_right = composite(Coordinate, __down_right_x, __down_right_y)
-    down_left = composite(Coordinate, __down_left_x, __down_left_y)
+    up_left = composite(Coordinate, __up_left_lat, __up_left_long)
+    up_right = composite(Coordinate, __up_right_lat, __up_right_long)
+    down_right = composite(Coordinate, __down_right_lat, __down_right_long)
+    down_left = composite(Coordinate, __down_left_lat, __down_left_long)
+    center = composite(Coordinate, __center_lat, __center_long)
 
     session = relationship("UserSession", back_populates="clients")
 
     def __repr__(self):
-        return '<Client(id={0:6d}, session_id={1:6d}, coordinates={2}'.format(
-            self.id, self.session_id, self.coordinates)
+        return NoneFormatter().format('<Client(id={0:6d}, session_id={1:6d}, up_left={2}, up_right={3}, down_right={4}, down_left={5}',
+            self.id, self.session_id, self.up_left, self.up_right, self.down_right, self.down_left)
 
 
 UserSession.clients = relationship("Client", order_by=Client.id, back_populates="session")
@@ -84,16 +105,16 @@ class AreaVertex(Base):
     __tablename__ = 'areas'
 
     session_id = Column(Integer, ForeignKey('sessions.id'), primary_key=True)
-    vertex_no = Column(Integer, primary_key=True)
-    __coordinate_x = Column(Float, nullable=False)
-    __coordinate_y = Column(Float, nullable=False)
+    vertex_no = Column(Integer, primary_key=True, nullable=False)
+    __coordinate_lat = Column(Float, nullable=False)
+    __coordinate_long = Column(Float, nullable=False)
     
-    coordinate = composite(Coordinate, __coordinate_x, __coordinate_y)
+    coordinate = composite(Coordinate, __coordinate_lat, __coordinate_long)
 
     session = relationship("UserSession", back_populates="area_vertices")
 
     def __repr__(self):
-        return '<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}'.format(
+        return NoneFormatter().format('<AreaVertex(session_id={0:6d}, vertex_no={1:6d}, coordinate={2}',
             self.session_id, self.vertex_no, self.coordinate.__repr__())
 
 
@@ -104,55 +125,34 @@ class Image(Base):
     __tablename__ = 'images'
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey('sessions.id'))
+    session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
     time_taken = Column(Integer, nullable=False)
     width = Column(Integer, nullable=False)
     height = Column(Integer, nullable=False)
     type = Column(String, nullable=False)
-    __up_left_x = Column(Float, nullable=False)
-    __up_left_y = Column(Float, nullable=False)
-    __up_right_x = Column(Float, nullable=False)
-    __up_right_y = Column(Float, nullable=False)
-    __down_right_x = Column(Float, nullable=False)
-    __down_right_y = Column(Float, nullable=False)
-    __down_left_x = Column(Float, nullable=False)
-    __down_left_y = Column(Float, nullable=False)
-    __center_x = Column(Float, nullable=False)
-    __center_y = Column(Float, nullable=False)
-    file_path = Column(String, nullable=False)
+    __up_left_lat = Column(Float, nullable=False)
+    __up_left_long = Column(Float, nullable=False)
+    __up_right_lat = Column(Float, nullable=False)
+    __up_right_long = Column(Float, nullable=False)
+    __down_right_lat = Column(Float, nullable=False)
+    __down_right_long = Column(Float, nullable=False)
+    __down_left_lat = Column(Float, nullable=False)
+    __down_left_long = Column(Float, nullable=False)
+    __center_lat = Column(Float, nullable=False)
+    __center_long = Column(Float, nullable=False)
     file_name = Column(String, nullable=False)
 
-    up_left = composite(Coordinate, __up_left_x, __up_left_y)
-    up_right = composite(Coordinate, __up_right_x, __up_right_y)
-    down_right = composite(Coordinate, __down_right_x, __down_right_y)
-    down_left = composite(Coordinate, __down_left_x, __down_left_y)
-    center = composite(Coordinate, __center_x, __center_y)
+    up_left = composite(Coordinate, __up_left_lat, __up_left_long)
+    up_right = composite(Coordinate, __up_right_lat, __up_right_long)
+    down_right = composite(Coordinate, __down_right_lat, __down_right_long)
+    down_left = composite(Coordinate, __down_left_lat, __down_left_long)
+    center = composite(Coordinate, __center_lat, __center_long)
 
     session = relationship("UserSession", back_populates="images")
 
     def __repr__(self):
-        return '<Image(id={0:6d}, session_id={1:6d}, time_taken={2}, width={3:4d}px, height={4:4d}px, type={5}, up_left={6}, up_right={}, down_right={}, down_left={}, file_path={}'.format(
-            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_path)
-
-    def __init__(self, session_id, time_taken, width, height, img_type, file_data, coordinates):
-        self.session_id = session_id
-        self.time_taken = time_taken
-        self.width = width
-        self.height = height
-        self.type = img_type
-        self.file_path = file_data[0]
-        self.file_name = file_data[1]
-
-        self.__up_left_x = coordinates["up_left"]["long"]
-        self.__up_left_y = coordinates["up_left"]["lat"]
-        self.__up_right_x = coordinates["up_right"]["long"]
-        self.__up_right_y = coordinates["up_right"]["lat"]
-        self.__down_right_x = coordinates["down_right"]["long"]
-        self.__down_right_y = coordinates["down_right"]["lat"]
-        self.__down_left_x = coordinates["down_left"]["long"]
-        self.__down_left_y = coordinates["down_left"]["lat"]
-        self.__center_x = coordinates["down_left"]["long"]
-        self.__center_y = coordinates["down_left"]["lat"]
+        return NoneFormatter().format('<Image(id={:6d}, session_id={:6d}, time_taken={}, width={:4d}px, height={:4d}px, type={}, up_left={}, up_right={}, down_right={}, down_left={}, file_path={}',
+            self.id, self.session_id, self.time_taken, self.width, self.height, self.type, self.up_left.__repr__(), self.up_right.__repr__(), self.down_right.__repr__(), self.down_left.__repr__(), self.file_name)
 
 
 UserSession.images = relationship("Image", order_by=Image.id, back_populates="session")
@@ -167,36 +167,48 @@ class PrioImage(Base):
     status = Column(String, nullable=False)
     image_id = Column(Integer, ForeignKey('images.id'), nullable=True)
     eta = Column(Integer, nullable=True)
-    __coordinate_x = Column(Float, nullable=False)
-    __coordinate_y = Column(Float, nullable=False)
+    __coordinate_lat = Column(Float, nullable=False)
+    __coordinate_long = Column(Float, nullable=False)
     
-    coordinate = composite(Coordinate, __coordinate_x, __coordinate_y)
+    coordinate = composite(Coordinate, __coordinate_lat, __coordinate_long)
     
     session = relationship("UserSession", back_populates="prio_images")
-    image = relationship("Image", back_populates="prio_image")
+    image = relationship("Image", uselist=False, back_populates="prio_image")
 
     def __repr__(self):
-        return '<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}'.format(
+        return NoneFormatter().format('<PrioImage(id={0:6d}, session_id={1:6d}, time_requested={2}, coordinate={3}, status={4}, image_id={5:6d}, eta={6}',
             self.id, self.session_id, self.time_requested, self.coordinate.__repr__(), self.status, self.image_id, self.eta)
 
 
 UserSession.prio_images = relationship("PrioImage", order_by=PrioImage.id, back_populates="session")
-Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, back_populates="image")
+Image.prio_image = relationship("PrioImage", order_by=PrioImage.id, uselist=False, back_populates="image")
 
 
 class Drone(Base):
     __tablename__ = 'drones'
 
     id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey('sessions.id'))
+    session_id = Column(Integer, ForeignKey('sessions.id'), nullable=False)
     last_updated = Column(Integer, nullable=True)
     eta = Column(Integer, nullable=True)
 
     session = relationship("UserSession", back_populates="drones")
 
+    def __repr__(self):
+        return NoneFormatter().format('<Drone(id={0:6d}, session_id={1:6d}, last_updated={2}, eta={3}',
+            self.id, self.session_id, self.last_updated, self.eta)
 
-UserSession.drones = relationship("Drone", order_by=PrioImage.id, back_populates="session")
 
+UserSession.drones = relationship("Drone", order_by=Drone.id, back_populates="session")
+
+# This is required to enable foreign key constraints in SQLite, see:
+# https://www.scrygroup.com/tutorial/2018-05-07/SQLite-foreign-keys/
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
 
 class Database:
     def __init__(self, file_path, echo=False):
@@ -224,13 +236,16 @@ def __get_database_instance(file_path):
     __active_database_mutex.release()
     return __active_databases[file_path]
 
-
 def get_database():
-    return __get_database_instance(DATABASE_FILE_PATH)
+    return __get_database_instance(__PRODUCTION_DATABASE_FILE_PATH)
 
-
-def get_test_database():
-    return Database(":memory:")
+def get_test_database(in_memory=True):
+    if in_memory:
+        return Database(":memory:")
+    else:
+        if os.path.exists(__TEST_DATABASE_FILE_PATH):
+            os.remove(__TEST_DATABASE_FILE_PATH)
+        return __get_database_instance(__TEST_DATABASE_FILE_PATH)
 
 # This context manager is inspired by the sqlalchemy session tutorial.
 # https://docs.sqlalchemy.org/en/13/orm/session_basics.html

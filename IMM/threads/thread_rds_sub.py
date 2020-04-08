@@ -4,7 +4,7 @@ from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url
 from threading import Thread
 from helper_functions import check_request
 from IMM.IMM_app import gui_pub_thread
-from IMM_database.database import Image, PrioImage, session_scope, UserSession
+from IMM_database.database import Image, PrioImage, session_scope, UserSession, Coordinate
 from helper_functions import get_path_from_root
 import json, datetime, os
 
@@ -13,7 +13,7 @@ def generate_image_name():
     now = datetime.datetime.now()
     image_datetime = now.strftime("%Y-%m-%d_%H-%M-%S")
     with session_scope() as session:
-        count = len(session.query(Image).filter_by(file_name=image_datetime).all())
+        count = session.query(Image).filter_by(file_name=image_datetime).count()
 
     image_name = image_datetime + "_(" + str(count) + ")" + ".jpg"
     return image_datetime, image_name
@@ -36,18 +36,21 @@ def get_session_id():
 def get_dummy_session_id():
     session_id = 1
     with session_scope() as session:
-        if len(session.query(UserSession).all()) == 0:
+        if session.query(UserSession).count() == 0:
             dummy_session = UserSession(start_time=100, drone_mode="AUTO")
             session.add(dummy_session)
 
     with session_scope() as session:
-        session_list = session.query(UserSession).all()
-        session_id = session_list[0].id
+        session_id = session.query(UserSession).first().id
 
     return session_id
 
 
 def save_to_database(img_arg, new_pic, file_data):
+
+    def coordinate_from_json(json):
+        return Coordinate(lat=json["lat"], long=json["long"])
+
     # time_taken = get_time_taken() ??
 
     session_id = get_dummy_session_id()
@@ -57,14 +60,25 @@ def save_to_database(img_arg, new_pic, file_data):
     width = len(new_pic[0])
     height = len(new_pic)
     img_type = img_arg["type"]
+    up_left = coordinate_from_json(img_arg["coordinates"]["up_left"])
+    up_right = coordinate_from_json(img_arg["coordinates"]["up_right"])
+    down_right = coordinate_from_json(img_arg["coordinates"]["down_right"])
+    down_left = coordinate_from_json(img_arg["coordinates"]["down_left"])
+    center = coordinate_from_json(img_arg["coordinates"]["center"])
 
-    image = Image(session_id=session_id,
-                  time_taken=time_taken,
-                  width=width,
-                  height=height,
-                  img_type=img_type,
-                  file_data=file_data,
-                  coordinates=img_arg["coordinates"])
+    image = Image(
+        session_id=session_id,
+        time_taken=time_taken,
+        width=width,
+        height=height,
+        img_type=img_type,
+        file_name=file_data[1],
+        up_left=up_left,
+        up_right=up_right,
+        down_right=down_right,
+        down_left=down_left,
+        center=center
+    )
 
     with session_scope() as session:
         session.add(image)
