@@ -198,6 +198,18 @@ class ClientTester(unittest.TestCase):
         check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_left=down_left))
         check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_right=down_right))
 
+    def test_foreign_key(self):
+        self.session.add(Client(
+            session_id=self.SESSIONS + 1,
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1)
+        ))
+        with self.assertRaises(IntegrityError, msg="Foreign key contraint not met."):
+            self.session.commit()
+
+
 class AreaVertexTester(unittest.TestCase):
     
     def setUp(self):
@@ -234,7 +246,7 @@ class AreaVertexTester(unittest.TestCase):
         n_max_vertices = 100
         n_vertices_for_session = [randint(1, n_max_vertices) for i in range(self.SESSIONS)]
         coordinates = [[Coordinate(uniform(1, 100), uniform(1, 100)) for i in range(j)] for j in n_vertices_for_session]
-        vertices = [[AreaVertex(session_id=i, vertex_no=j, coordinate=coordinates[i][j]) for j in range(n_vertices_for_session[i])] for i in range(self.SESSIONS)]
+        vertices = [[AreaVertex(session_id=i+1, vertex_no=j, coordinate=coordinates[i][j]) for j in range(n_vertices_for_session[i])] for i in range(self.SESSIONS)]
         for session_vertices in vertices:
             for vertex in session_vertices:
                 self.session.add(vertex)
@@ -246,7 +258,7 @@ class AreaVertexTester(unittest.TestCase):
             "Incorrect number of entries saved in database.")
         for session_id in range(self.SESSIONS):
             with self.subTest(i=session_id):
-                session_vertices = self.session.query(AreaVertex).filter(AreaVertex.session_id == session_id).all()
+                session_vertices = self.session.query(AreaVertex).filter(AreaVertex.session_id == session_id+1).all()
                 self.assertEqual(len(session_vertices), n_vertices_for_session[session_id],
                     "Incorrect number of vertices retrieved for session.")
                 for i in range(n_vertices_for_session[session_id]):
@@ -271,6 +283,15 @@ class AreaVertexTester(unittest.TestCase):
         check_invalid(AreaVertex(vertex_no=1, coordinate=coordinate))
         check_invalid(AreaVertex(session_id=1, coordinate=coordinate))
         check_invalid(AreaVertex(session_id=1, vertex_no=1))
+
+    def test_foreign_key(self):
+        self.session.add(AreaVertex(
+            session_id=self.SESSIONS + 1,
+            vertex_no=1,
+            coordinate=Coordinate(5, 5)
+        ))
+        with self.assertRaises(IntegrityError, msg="Foreign key contraint not met."):
+            self.session.commit()
 
 class ImageTester(unittest.TestCase):
     
@@ -454,6 +475,23 @@ class ImageTester(unittest.TestCase):
             down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
         ))
 
+    def test_foreign_key(self):
+        self.session.add(Image(
+            session_id=self.SESSIONS+1,
+            time_taken=123,
+            width=100,
+            height=200,
+            type="IR",
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3),
+            file_name="1.jpg"
+        ))
+        with self.assertRaises(IntegrityError, msg="Foreign key contraint not met."):
+            self.session.commit()
+
 class PrioImageTester(unittest.TestCase):
     
     def setUp(self):
@@ -545,6 +583,44 @@ class PrioImageTester(unittest.TestCase):
         check_invalid(PrioImage(session_id=1, status="COMPLETE"))
         check_invalid(PrioImage(session_id=1, time_requested=150000))
 
+    def test_foreign_key(self):
+        self.session.add(Image(
+            session_id=1,
+            time_taken=123,
+            width=100,
+            height=200,
+            type="IR",
+            up_left=Coordinate(1, 5),
+            up_right=Coordinate(5, 5),
+            down_right=Coordinate(5, 1),
+            down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3),
+            file_name="1.jpg"
+        ))
+        self.session.commit()
+
+        self.session.add(PrioImage(
+            session_id=self.SESSIONS+1,
+            time_requested=123,
+            status="PENDING",
+            eta=123,
+            coordinate=Coordinate(5, 4)
+        ))
+        with self.assertRaises(IntegrityError, msg="Foreign key contraint not met."):
+            self.session.commit()
+        self.session.rollback()
+
+        self.session.add(PrioImage(
+            session_id=1,
+            image_id=2,
+            time_requested=123,
+            status="PENDING",
+            eta=123,
+            coordinate=Coordinate(5, 4)
+        ))
+        with self.assertRaises(IntegrityError, msg="Foreign key contraint not met."):
+            self.session.commit()
+
 class DroneTester(unittest.TestCase):
     
     def setUp(self):
@@ -626,6 +702,11 @@ class DroneTester(unittest.TestCase):
             self.session.rollback()
 
         check_invalid(Drone())
+
+    def test_foreign_key(self):
+        self.session.add(Drone(session_id=self.SESSIONS + 1))
+        with self.assertRaises(IntegrityError, msg="Foreign key contraint not met."):
+            self.session.commit()
 
 class RelationTester(unittest.TestCase):
     def setUp(self):
