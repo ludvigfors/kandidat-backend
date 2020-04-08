@@ -2,14 +2,15 @@ import os
 
 from string import Formatter
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy import Column, Table, ForeignKey
 from sqlalchemy import Integer, Float, String
-
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.orm import composite, relationship
-
 from sqlalchemy.ext.declarative import declarative_base
+
+import sqlite3
 
 from contextlib import contextmanager
 
@@ -197,6 +198,14 @@ class Drone(Base):
 
 UserSession.drones = relationship("Drone", order_by=Drone.id, back_populates="session")
 
+# This is required to enable foreign key constraints in SQLite, see:
+# https://www.scrygroup.com/tutorial/2018-05-07/SQLite-foreign-keys/
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
 
 class Database:
     def __init__(self, file_path, echo=False):
