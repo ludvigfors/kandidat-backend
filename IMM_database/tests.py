@@ -151,13 +151,11 @@ class ClientTester(unittest.TestCase):
         up_right = [Coordinate(uniform(5, 10), uniform(5, 10)) for i in range(n_clients)]
         down_right = [Coordinate(uniform(5, 10), uniform(1, 5)) for i in range(n_clients)]
         down_left = [Coordinate(uniform(1, 5), uniform(1, 5)) for i in range(n_clients)]
-        center = [Coordinate(uniform(3, 7), uniform(3, 7)) for i in range(n_clients)]
         sessions = [randint(1, self.SESSIONS) for i in range(n_clients)]
         clients = [Client(
             session_id=sessions[i],
             up_left=up_left[i], up_right=up_right[i],
-            down_right=down_right[i], down_left=down_left[i],
-            center=center[i]
+            down_right=down_right[i], down_left=down_left[i]
             ) for i in range(n_clients)]
         for client in clients:
             self.session.add(client)
@@ -195,12 +193,9 @@ class ClientTester(unittest.TestCase):
         up_right = Coordinate(5, 5)
         down_right = Coordinate(5, 1)
         down_left = Coordinate(1, 1)
-        check_invalid(Client(up_left=up_left, up_right=up_right, down_right=down_right, down_left=down_left))
-        check_invalid(Client(session_id=1, up_right=up_right, down_right=down_right, down_left=down_left))
-        check_invalid(Client(session_id=1, up_left=up_left, down_right=down_right, down_left=down_left))
-        check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_left=down_left))
-        check_invalid(Client(session_id=1, up_left=up_left, up_right=up_right, down_right=down_right))
-
+        center = Coordinate(3, 3)
+        check_invalid(Client(up_left=up_left, up_right=up_right, down_right=down_right, down_left=down_left, center=center))
+        
     def test_foreign_key(self):
         self.session.add(Client(
             session_id=self.SESSIONS + 1,
