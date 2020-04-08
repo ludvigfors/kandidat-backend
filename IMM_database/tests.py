@@ -133,6 +133,7 @@ class ClientTester(unittest.TestCase):
         client.up_right = Coordinate(5, 5)
         client.down_right = Coordinate(5, 1)
         client.down_left = Coordinate(1, 1)
+        client.center = Coordinate(3, 3)
         self.session.add(client)
         self.session.commit()
         
@@ -150,11 +151,13 @@ class ClientTester(unittest.TestCase):
         up_right = [Coordinate(uniform(5, 10), uniform(5, 10)) for i in range(n_clients)]
         down_right = [Coordinate(uniform(5, 10), uniform(1, 5)) for i in range(n_clients)]
         down_left = [Coordinate(uniform(1, 5), uniform(1, 5)) for i in range(n_clients)]
+        center = [Coordinate(uniform(3, 7), uniform(3, 7)) for i in range(n_clients)]
         sessions = [randint(1, self.SESSIONS) for i in range(n_clients)]
         clients = [Client(
             session_id=sessions[i],
             up_left=up_left[i], up_right=up_right[i],
-            down_right=down_right[i], down_left=down_left[i]
+            down_right=down_right[i], down_left=down_left[i],
+            center=center[i]
             ) for i in range(n_clients)]
         for client in clients:
             self.session.add(client)
@@ -722,7 +725,8 @@ class RelationTester(unittest.TestCase):
         client = Client(
             session_id=session.id,
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
-            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1)
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3)
         )
         self.session.add(session)
         self.session.add(client)
@@ -735,7 +739,8 @@ class RelationTester(unittest.TestCase):
         
         session.clients.append(Client(session_id=session.id,
             up_left=Coordinate(1, 5), up_right=Coordinate(5, 5),
-            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1)))
+            down_right=Coordinate(5, 1), down_left=Coordinate(1, 1),
+            center=Coordinate(3, 3)))
         self.session.commit()
 
         self.assertEqual(self.session.query(Client).count(), 2,

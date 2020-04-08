@@ -82,11 +82,14 @@ class Client(Base):
     __down_right_long = Column(Float, nullable=False)
     __down_left_lat = Column(Float, nullable=False)
     __down_left_long = Column(Float, nullable=False)
+    __center_lat = Column(Float, nullable=False)
+    __center_long = Column(Float, nullable=False)
 
     up_left = composite(Coordinate, __up_left_lat, __up_left_long)
     up_right = composite(Coordinate, __up_right_lat, __up_right_long)
     down_right = composite(Coordinate, __down_right_lat, __down_right_long)
     down_left = composite(Coordinate, __down_left_lat, __down_left_long)
+    center = composite(Coordinate, __center_lat, __center_long)
 
     session = relationship("UserSession", back_populates="clients")
 
