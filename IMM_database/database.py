@@ -18,8 +18,8 @@ from threading import Lock
 
 from helper_functions import get_path_from_root
 
-DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
-
+__PRODUCTION_DATABASE_FILE_PATH = get_path_from_root("/IMM_database/IMM_database.db")
+__TEST_DATABASE_FILE_PATH = get_path_from_root("/IMM_database/test.db")
 
 Base = declarative_base()
 
@@ -237,15 +237,15 @@ def __get_database_instance(file_path):
     return __active_databases[file_path]
 
 def get_database():
-    return __get_database_instance(DATABASE_FILE_PATH)
+    return __get_database_instance(__PRODUCTION_DATABASE_FILE_PATH)
 
 def get_test_database(in_memory=True):
     if in_memory:
         return Database(":memory:")
     else:
-        if os.path.exists("test.db"):
-            os.remove("test.db")
-        return __get_database_instance("test.db")
+        if os.path.exists(__TEST_DATABASE_FILE_PATH):
+            os.remove(__TEST_DATABASE_FILE_PATH)
+        return __get_database_instance(__TEST_DATABASE_FILE_PATH)
 
 # This context manager is inspired by the sqlalchemy session tutorial.
 # https://docs.sqlalchemy.org/en/13/orm/session_basics.html
