@@ -1,4 +1,4 @@
-import numpy
+import numpy, time
 from PIL import Image as PIL_image
 from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url
 from threading import Thread
@@ -6,27 +6,26 @@ from helper_functions import check_request
 from IMM.IMM_app import gui_pub_thread
 from IMM_database.database import Image, PrioImage, session_scope, UserSession, Coordinate
 from helper_functions import get_path_from_root
-import json, datetime, os
+import json, datetime
 
 
-def generate_image_name():
-    now = datetime.datetime.now()
-    image_datetime = now.strftime("%Y-%m-%d_%H-%M-%S")
+def generate_image_name(timestamp):
     with session_scope() as session:
-        count = session.query(Image).filter_by(file_name=image_datetime).count()
-
+        count = session.query(Image).filter_by(time_taken=timestamp).count()
+    readable_time = datetime.datetime.fromtimestamp(timestamp)
+    image_datetime = readable_time.strftime("%Y-%m-%d_%H-%M-%S")
     image_name = image_datetime + "_(" + str(count) + ")" + ".jpg"
-    return image_datetime, image_name
+    return image_name
 
 
 def save_image(new_pic):
     # TODO: Organize how the images are saved
-    folder_path = get_path_from_root("/IMM/images/")
     jpg_image = PIL_image.fromarray(new_pic)
-    image_datetime, image_name = generate_image_name()
-    image_path = folder_path + image_name
+    timestamp = int(time.time())
+    image_name = generate_image_name(timestamp)
+    image_path = get_path_from_root("/IMM/images/") + image_name
     jpg_image.save(image_path)
-    return image_path, image_datetime
+    return timestamp, image_name
 
 
 def get_session_id():
@@ -51,10 +50,7 @@ def save_to_database(img_arg, new_pic, file_data):
     def coordinate_from_json(json):
         return Coordinate(lat=json["lat"], long=json["long"])
 
-    # time_taken = get_time_taken() ??
-
     session_id = get_dummy_session_id()
-    time_taken = 100  # Dummy data
 
     # Gather image info
     width = len(new_pic[0])
@@ -68,10 +64,10 @@ def save_to_database(img_arg, new_pic, file_data):
 
     image = Image(
         session_id=session_id,
-        time_taken=time_taken,
+        time_taken=file_data[0],
         width=width,
         height=height,
-        img_type=img_type,
+        type=img_type,
         file_name=file_data[1],
         up_left=up_left,
         up_right=up_right,
