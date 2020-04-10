@@ -1,4 +1,5 @@
 import unittest
+from IMM_database.database import use_test_database
 
 #Run the threads
 from IMM.IMM_app import *
@@ -14,6 +15,9 @@ RDS_REQ_REP = context.socket(zmq.REP) #start by sending messages
 RDS_REQ_REP.bind(REQ_REP_BACKEND_RDS)
 
 class TestCommunication(unittest.TestCase):
+    def setUp(self):
+        use_test_database()
+
     """
     Test system communication TOP-DOWN.
     Send request to Back-End which sends a request to a RDS:
