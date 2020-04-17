@@ -32,7 +32,7 @@ import sqlite3
 
 from contextlib import contextmanager
 
-from threading import Lock
+from threading import Lock, Semaphore
 
 from helper_functions import get_path_from_root
 
@@ -447,53 +447,65 @@ class _Database:
         self.__session_maker = sessionmaker(bind=self.__engine)
         self.__Session = scoped_session(self.__session_maker)
 
+        self.__session_cnt = 0
+        self.__session_cnt_mutex = Lock()
+        self.__session_active_sema = Semaphore()
+        self.__session_active_sema.release() # Initialize to 1
+
     def get_session(self):
         """Return a new thread-safe session object."""
+        self.__session_cnt_mutex.acquire()
+        self.__session_cnt += 1
+        if self.__session_cnt == 1:
+            # Block disposing until session is released.
+            self.__session_active_sema.acquire()
+        self.__session_cnt_mutex.release()
         return self.__Session()
 
     def release_session(self):
         """Close and remove the session object used by the current thread."""
+        self.__session_cnt_mutex.acquire()
+        self.__session_cnt -= 1
+        if self.__session_cnt == 0:
+            # Allow disposing, since to sessions are active.
+            self.__session_active_sema.release()
+        self.__session_cnt_mutex.release()
         return self.__Session.remove()
 
+    def dispose(self):
+        # Don't procees if there are active sessions remaining.
+        self.__session_active_sema.acquire()
+        self.__engine.dispose()
 
-__active_databases = {}
-__active_database_mutex = Lock()
-
-def __get_database_instance(file_path):
-    """Return a Database instance.
-
-    This function is provided as a thread-safe means to access a Database
-    instance. If a Database instance doesn't exists for the provided database
-    file, a new such instance is created.
-
-    file_path   The absolut file path to the SQLite3 database file.
-    """
-    # This is a critical section, as multiple instances of the same Database
-    # might be created by different threads.
-    __active_database_mutex.acquire()
-    if not file_path in __active_databases.keys():
-        __active_databases[file_path] = _Database(file_path)
-    __active_database_mutex.release()
-    return __active_databases[file_path]
 
 __active_db = None
+__change_active_db_mutex = Lock()
 
 def use_production_db():
     """Sets the production database as the currently active database.
 
     Note that this setting affects all methods globally. Sessions retrieved
     using the session_scope context manager are connected to the production
-    database if this setting is active.
+    database if this setting is active. Any previously opened database is
+    closed, though active connections to such database is kept alive until
+    closed.
     """
     global __active_db
-    __active_db = __get_database_instance(__PRODUCTION_DATABASE_FILE_PATH)
+    __change_active_db_mutex.acquire()
+    if __active_db:
+        __active_db.dispose()
+        __active_db = None
+    __active_db = _Database(__PRODUCTION_DATABASE_FILE_PATH)
+    __change_active_db_mutex.release()
 
 def use_test_database(in_memory=True):
     """Sets a new test database as the currently active database.
 
     Note that this setting affects all methods globally. Sessions retrieved
     using the session_scope context manager are connected to the test
-    database if this setting is active.
+    database if this setting is active. Any previously opened database is
+    closed, though active connections to such database is kept alive until
+    closed.
 
     in_memory   If True, the test database is created as an in-memory database.
                 This setting should be set to False if the test involves multiple
@@ -501,13 +513,17 @@ def use_test_database(in_memory=True):
                 multiple threads is not supported by SQLite3.
     """
     global __active_db
+    __change_active_db_mutex.acquire()
+    if __active_db:
+        __active_db.dispose()
+        __active_db = None
     if in_memory:
         __active_db = _Database(":memory:")
     else:
         if os.path.exists(__TEST_DATABASE_FILE_PATH):
             os.remove(__TEST_DATABASE_FILE_PATH)
-        __active_db = __get_database_instance(__TEST_DATABASE_FILE_PATH)
-
+        __active_db = _Database(__TEST_DATABASE_FILE_PATH)
+    __change_active_db_mutex.release()
 
 @contextmanager
 def session_scope():
@@ -534,7 +550,10 @@ def session_scope():
     This context manager is inspired by the SQLAlchemy session tutorial:
     https://docs.sqlalchemy.org/en/13/orm/session_basics.html
     """
+    # Don't proceed if the current database is in the process of being closed.
+    __change_active_db_mutex.acquire()
     session = __active_db.get_session()
+    __change_active_db_mutex.release()
     try:
         yield session
         session.commit()
