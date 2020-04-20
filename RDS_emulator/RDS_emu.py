@@ -2,7 +2,7 @@ import platform
 
 import numpy
 import os
-from RDS_emulator.database import Image, session
+from RDS_emulator.database import Image, create_engine, sessionmaker, session_scope
 from threading import Thread
 from PIL import Image as PIL_image
 import time
@@ -23,9 +23,10 @@ class DroneThread(Thread):
         self.FLYING_TIME = 1
         self.count = 0
         self.new_image = False
+        self.running = True
 
     def run(self):
-        while True:
+        while self.running:
             if not self.new_image and len(self.image_queue) > 0:
                 self.countdown() # Simulate drone flying to location
                 # print("Image arrived")
@@ -37,6 +38,7 @@ class DroneThread(Thread):
     def pop_first_image(self):
         self.new_image = False
         return self.image_queue.pop(0)
+
 
     def has_new_image(self):
         return self.new_image
@@ -50,22 +52,24 @@ class DroneThread(Thread):
     def next_image_eta(self):
         return self.count
 
-drone_thread = DroneThread()
-drone_thread.start()
+    def stop(self):
+        self.running = False
 
 
 class IMMPubThread(Thread):
     """Simulates RDS Publish link"""
 
-    def __init__(self, socket_url):
+    def __init__(self, socket_url, drone):
         super().__init__()
         self.socket = context.socket(zmq.REQ)
         self.socket.bind(socket_url)
+        self.drone_thread = drone
+        self.running = True
 
     def run(self):
-        while True:
-            if drone_thread.new_image:
-                self.new_pic(drone_thread.pop_first_image())
+        while self.running:
+            if self.drone_thread.new_image:
+                self.new_pic(self.drone_thread.pop_first_image())
                 response = self.socket.recv_json()
                 # print(response)
 
@@ -95,48 +99,69 @@ class IMMPubThread(Thread):
         self.socket.send_json(metadata, flags | zmq.SNDMORE)
         self.socket.send(A, flags, copy=copy, track=track)
 
+    def stop(self):
+        self.running = False
+
 
 class IMMSubThread(Thread):
     """Simulates RDS-Subscribe link"""
 
-    def __init__(self, socket_url):
+    def __init__(self, socket_url, drone):
         super().__init__()
         self.socket = context.socket(zmq.REP)
         self.socket.bind(socket_url)
+        self.drone_thread = drone
+        self.running = True
 
     def run(self):
-        while True:
-            request = json.loads(self.socket.recv_json())
-            if request["fcn"] == "add_poi":
-                self.socket.send_json(self.add_poi(request["arg"]))
+        while self.running:
+            try:
+                request = json.loads(self.socket.recv_json())
+                if request["fcn"] == "add_poi":
+                    self.socket.send_json(self.add_poi(request["arg"]))
 
-            else:
-                self.socket.send_json(json.dumps({"msg": "nothing happened"}))
+                else:
+                    self.socket.send_json(json.dumps({"msg": "nothing happened"}))
+            except:
+                pass
+
 
     def add_poi(self, arguments):
         """Gets corner coordinates from client"""
         coordinates = arguments["coordinates"]
-        image = session.query(Image).filter_by(coordinates=coordinates).first()
-        if image is not None:
-            drone_thread.add_image_to_queue(image)
-            # print("Image added to queue")
-            return {"msg": "Image added to queue"}
-        else:
-            return {"msg":"Something went wrong"}
+        with session_scope() as session:
+            image = session.query(Image).filter_by(coordinates=coordinates).first()
+            if image is not None:
+                self.drone_thread.add_image_to_queue(image)
+                # print("Image added to queue")
+                return {"msg": "Image added to queue"}
+            else:
+                return {"msg":"Something went wrong"}
+
+    def stop(self):
+        context.destroy()
+        self.running = False
+
 
 
 class IMMRepThread(Thread):
     """Simulates the Reply-link (INFO-link)"""
-    def __init__(self, socket_url):
+    def __init__(self, socket_url, drone):
         super().__init__()
         self.socket = context.socket(zmq.REP)
         self.socket.bind(socket_url)
+        self.drone_thread = drone
+        self.running = True
 
     def run(self):
-        while True:
-            request = json.loads(self.socket.recv_json())
-            if request["fcn"] == "queue_eta":
-                self.socket.send_json(self.eta())
+        while self.running:
+            try:
+                request = json.loads(self.socket.recv_json())
+                if request["fcn"] == "queue_eta":
+                    self.socket.send_json(self.eta())
+            except:
+                pass
+
 
     def get_info(self):
         """Returns info on connected drones, for now"""
@@ -155,46 +180,15 @@ class IMMRepThread(Thread):
         res = {
             "fcn": "ack",
             "arg": "que_ETA",
-            "arg2": str(drone_thread.next_image_eta())
+            "arg2": str(self.drone_thread.next_image_eta())
         }
         # print("ETA", res)
         return res
 
+    def stop(self):
+        context.destroy()
+        self.running = False
 
-def init_db_and_add_image():
-    """Inserts a test image into the IMM_database"""
-
-
-    coord = {
-                "up_left":
-                    {
-                        "lat":59,
-                        "long":16
-             },
-                 "up_right":
-                     {
-                         "lat":58,
-                         "long":16
-                     },
-                 "down_left":
-                     {
-                         "lat":58,
-                         "long":16
-                     },
-                 "down_right":
-                     {"lat":58,
-                      "long":16
-                      },
-                 "center":
-                     {
-                         "lat":58,
-                         "long":16
-                     }
-             }
-    testFilePath = get_path_from_root("/RDS_emulator/images/testimage.jpg")
-    image = Image(coord, testFilePath)
-    session.add(image)
-    session.commit()
 
 
 
