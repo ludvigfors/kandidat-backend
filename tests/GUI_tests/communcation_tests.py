@@ -1,6 +1,6 @@
 import unittest
 from IMM_database.database import use_test_database
-
+import zmq
 #Run the threads
 from IMM.IMM_app import *
 

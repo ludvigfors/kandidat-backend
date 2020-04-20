@@ -1,5 +1,6 @@
 from IMM.IMM_thread_config import context, zmq, RDS_req_socket_url, RDS_pub_socket_url
 from threading import Thread
+#from IMM.thread_handler import ThreadHandler
 from helper_functions import check_request
 import json
 import random
@@ -8,16 +9,18 @@ import random
 class RDSPubThread(Thread):
     """Regularly fetches information from the RDS and processes client requests"""
 
-    def __init__(self):
+    def __init__(self, thread_handler):
         super().__init__()
         self.RDS_req_socket = context.socket(zmq.REQ)
         self.RDS_pub_socket = context.socket(zmq.REQ)
         self.RDS_req_socket.connect(RDS_req_socket_url)
         self.RDS_pub_socket.connect(RDS_pub_socket_url)
+        self.thread_handler = thread_handler
         self.request_queue = []
+        self.running = True
 
     def run(self):
-        while True:
+        while self.running:
             if len(self.request_queue) > 0:
                 request = self.request_queue.pop(0)
 
@@ -55,8 +58,11 @@ class RDSPubThread(Thread):
 
         request_args["coordinates"] = poi["coordinates"]
         request["arg"] = request_args
-        self.RDS_pub_socket.send_json(json.dumps(request))
-        resp = self.RDS_pub_socket.recv()
+        try:
+            self.RDS_pub_socket.send_json(json.dumps(request))
+            resp = self.RDS_pub_socket.recv()
+        except:
+            print("Communication closed")
 
     def set_area(self):
         #TODO: Define this.
@@ -69,3 +75,8 @@ class RDSPubThread(Thread):
     def quit(self):
         request = {"fcn":"quit", "arg": ""}
         self.RDS_req_socket.send_json(request)
+
+    def stop(self):
+        self.running = False
+
+

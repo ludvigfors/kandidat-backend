@@ -2,8 +2,8 @@ import numpy, time
 from PIL import Image as PIL_image
 from IMM.IMM_thread_config import context, zmq, RDS_sub_socket_url
 from threading import Thread
+
 from helper_functions import check_request
-from IMM.IMM_app import gui_pub_thread
 from IMM_database.database import Image, PrioImage, session_scope, UserSession, Coordinate
 from helper_functions import get_path_from_root
 import json, datetime
@@ -80,22 +80,17 @@ def save_to_database(img_arg, new_pic, file_data):
         session.add(image)
 
 
-def new_pic_notify_gui():
-    """Run thread_gui_pub"""
 
-    msg = {"fcn": "new_pic", "arg":{"image_id": 1}}  # This notify message will change later
-    request = {"IMM_fcn": "send_to_gui", "arg": msg}
-
-    # contact gui pub thread
-    gui_pub_thread.add_request(request)
 
 
 class RDSSubThread(Thread):
     """This thread subscribes to the RDS and handles the data (mostly images) received from the RDS"""
-    def __init__(self):
+    def __init__(self, thread_handler):
         super().__init__()
         self.RDS_sub_socket = context.socket(zmq.REP)
         self.RDS_sub_socket.connect(RDS_sub_socket_url)
+        self.thread_handler = thread_handler
+        self.running = True
 
     def recv_image_array(self, metadata, flags=0, copy=True, track=False):
         """Receives and returns the image converted to a numpy array"""
@@ -105,14 +100,32 @@ class RDSSubThread(Thread):
         return image_array.reshape(metadata["shape"])
 
     def run(self):
-        while True:
-            request = self.RDS_sub_socket.recv_json(flags=0)
-            check_request(request)
-            if "image_md" in request:
-                # We have a new image
-                new_pic = self.recv_image_array(request["image_md"])
-                img_file_data = save_image(new_pic)
-                save_to_database(request["arg"], new_pic, img_file_data)
-                new_pic_notify_gui()
+        while self.running:
+            try:
+                request = self.RDS_sub_socket.recv_json(flags=0)
+                check_request(request)
+                if "image_md" in request:
+                    # We have a new image
+                    new_pic = self.recv_image_array(request["image_md"])
+                    img_file_data = save_image(new_pic)
+                    save_to_database(request["arg"], new_pic, img_file_data)
+                    self.new_pic_notify_gui()
+                self.RDS_sub_socket.send_json(json.dumps({"msg": "ack"}))
 
-            self.RDS_sub_socket.send_json(json.dumps({"msg": "ack"}))
+            except:
+                pass
+
+    def new_pic_notify_gui(self):
+        """Run thread_gui_pub"""
+
+        msg = {"fcn": "new_pic", "arg": {"image_id": 1}}  # This notify message will change later
+        request = {"IMM_fcn": "send_to_gui", "arg": msg}
+
+        # contact gui pub thread
+        self.thread_handler.get_gui_pub_thread().add_request(request)
+
+    def stop(self):
+        self.RDS_sub_socket.close()
+        context.destroy()
+        self.running = False
+
