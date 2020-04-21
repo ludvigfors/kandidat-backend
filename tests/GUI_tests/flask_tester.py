@@ -1,39 +1,28 @@
 import unittest
-import json, os
-
-from RDS_emulator.RDS_app import RDSThreadHandler
-from helper_functions import get_path_from_root
 from IMM.IMM_app import *
 from IMM_database.database import use_test_database
-from  RDS_emulator.database import use_test_database_rds, Image, session_scope
+from  RDS_emulator.RDS_app import RDSThreadHandler
+from RDS_emulator.database import use_test_database_rds, session_scope, Image
+from helper_functions import get_path_from_root
 
 
 class TestFlask(unittest.TestCase):
     def setUp(self):
-        #app.config['TESTING'] = True
-        #app.config['WTF_CSRF_ENABLED'] = False
-        #app.config['DEBUG'] = False
         #self.client = socketio.test_client(app)
-        #self.rds_handler = RDSThreadHandler()
-        #self.rds_handler.start_threads()
+        self.rds_handler = RDSThreadHandler()
+        self.rds_handler.start_threads()
         use_test_database(False)
-        #thread_handler.start_threads()
-        #use_test_database_rds(False)
-        #init_db_and_add_image()
+        use_test_database_rds(False)
+        init_db_and_add_image()
         pass
 
     def tearDown(self):
-        thread_handler.stop_threads()
-        #self.rds_handler.stop_threads()
+        pass
+        #thread_handler.stop_threads()
+        # self.rds_handler.stop_threads()
 
-    def test_unit_connect(self):
-        print(on_connect())
-
-    def test_connect(self):
-        client = socketio.test_client(app)
-        self.assertTrue(client.is_connected())
-        recieved = client.get_received()
-        self.assertTrue("CONNECTED TO BACKEND1", recieved[0]["args"])
+    #def test_unit_connect(self):
+     #   print(on_connect())
 
     def test_request_view(self):
         client = socketio.test_client(app)
@@ -121,9 +110,9 @@ class TestFlask(unittest.TestCase):
         resp = self.app.post(url+"/request_image", data=json.dumps(req3))
 
 
-
+"""
 def init_db_and_add_image():
-    Inserts a test image into the IMM_database
+    """Inserts a test image into the IMM_database"""
 
     with session_scope() as session:
 
@@ -158,6 +147,6 @@ def init_db_and_add_image():
         session.add(image)
         session.commit()
 
-        """
+
 if __name__ == "__main__":
     unittest.main()

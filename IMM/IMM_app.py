@@ -6,6 +6,7 @@ from flask_socketio import SocketIO, join_room, emit
 
 app = Flask(__name__)
 thread_handler = ThreadHandler()
+thread_handler.start_threads()
 socketio = SocketIO(app)
 
 
@@ -29,6 +30,10 @@ def on_quit():
     # Sends request to rds pub thread
     pass
 
+@socketio.on("quit_test")
+def on_test_quit():
+    pass
+
 @socketio.on("set_area")
 def on_set_area():
     # TODO: Implement this
@@ -42,6 +47,12 @@ def on_request_view(data):
     print(data)
     emit("response", data)
     # Sends request to rds pub thread
+    # poi = json.loads(request.data)
+    # Psudocode
+    # if poi in IMM_database:
+    # return db.image.metadata
+    # else
+    thread_handler.get_rds_pub_thread().add_request(data)
     pass
 
 
