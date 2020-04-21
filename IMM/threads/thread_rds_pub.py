@@ -33,7 +33,7 @@ class RDSPubThread(Thread):
                     self.request_poi(request["arg"])
 
                 elif request["fcn"] == "set_mode":
-                    self.set_mode()
+                    self.set_mode(request)
 
                 elif request["fcn"] == "quit":
                     self.quit()
@@ -68,13 +68,15 @@ class RDSPubThread(Thread):
         #TODO: Define this.
         pass
 
-    def set_mode(self):
+    def set_mode(self, request):
         #TODO: Define this
-        pass
+        self.RDS_req_socket.send_json(json.dumps(request))
+        resp = self.RDS_req_socket.recv()
 
     def quit(self):
         request = {"fcn":"quit", "arg": ""}
         self.RDS_req_socket.send_json(request)
+        resp = self.RDS_req_socket.recv()
 
     def stop(self):
         self.running = False

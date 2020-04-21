@@ -22,11 +22,13 @@ class Image(_Base):
 
     id = Column(Integer, primary_key=True)
     coordinates = Column(JSON, unique=True)
+    mode = Column(String, unique=False)
     image_path = Column(String, unique=True)
 
-    def __init__(self, coordinates, image_path):
+    def __init__(self, coordinates, image_path, mode):
         self.coordinates = coordinates
         self.image_path = image_path
+        self.mode = mode
 
 
 class _Database:

@@ -71,10 +71,11 @@ def on_clear_queue():
 
 
 @socketio.on("set_mode")
-def on_set_mode():
+def on_set_mode(data):
     # TODO: Implement this
     # Sends request to rds pub thread
-    pass
+    thread_handler.get_rds_pub_thread().add_request(data)
+    socketio.emit("set_mode", data)
 
 @socketio.on("get_image_by_id")
 def on_get_image_by_id(self):

@@ -20,10 +20,12 @@ class DroneThread(Thread):
     def __init__(self):
         super().__init__()
         self.image_queue = []
-        self.FLYING_TIME = 1
+        self.FLYING_TIME = 3
         self.count = 0
         self.new_image = False
         self.running = True
+        self.mode = "MAN"
+        self.stuff_is_changing = False
 
     def run(self):
         while self.running:
@@ -39,7 +41,6 @@ class DroneThread(Thread):
         self.new_image = False
         return self.image_queue.pop(0)
 
-
     def has_new_image(self):
         return self.new_image
 
@@ -54,6 +55,21 @@ class DroneThread(Thread):
 
     def stop(self):
         self.running = False
+
+    def set_mode(self, mode):
+        self.mode = mode
+
+    def get_mode(self):
+        return self.mode
+
+    def start_change(self):
+        self.stuff_is_changing = True
+
+    def stop_change(self):
+        self.stuff_is_changing = False
+
+    def is_changing(self):
+        return self.stuff_is_changing
 
 
 class IMMPubThread(Thread):
@@ -72,6 +88,7 @@ class IMMPubThread(Thread):
                 self.new_pic(self.drone_thread.pop_first_image())
                 response = self.socket.recv_json()
                 # print(response)
+        i = 0
 
     def new_pic(self, image):
         "Called when a new picture is taken, send this to the client that wanted it."
@@ -119,29 +136,28 @@ class IMMSubThread(Thread):
                 request = json.loads(self.socket.recv_json())
                 if request["fcn"] == "add_poi":
                     self.socket.send_json(self.add_poi(request["arg"]))
-
                 else:
                     self.socket.send_json(json.dumps({"msg": "nothing happened"}))
             except:
                 pass
 
-
     def add_poi(self, arguments):
         """Gets corner coordinates from client"""
         coordinates = arguments["coordinates"]
+        # Maybe add a wait here to make it threadsafe
         with session_scope() as session:
-            image = session.query(Image).filter_by(coordinates=coordinates).first()
-            if image is not None:
-                self.drone_thread.add_image_to_queue(image)
-                # print("Image added to queue")
-                return {"msg": "Image added to queue"}
-            else:
-                return {"msg":"Something went wrong"}
+            if not self.drone_thread.get_mode() == "AUTO":
+                image = session.query(Image).filter_by(coordinates=coordinates).first()
+                if image is not None:
+                    self.drone_thread.add_image_to_queue(image)
+                    # print("Image added to queue")
+                    return {"msg": "Image added to queue"}
+                else:
+                    return {"msg":"Something went wrong"}
 
     def stop(self):
         context.destroy()
         self.running = False
-
 
 
 class IMMRepThread(Thread):
@@ -155,13 +171,13 @@ class IMMRepThread(Thread):
 
     def run(self):
         while self.running:
-            try:
-                request = json.loads(self.socket.recv_json())
-                if request["fcn"] == "queue_eta":
-                    self.socket.send_json(self.eta())
-            except:
-                pass
-
+            request = json.loads(self.socket.recv_json())
+            self.drone_thread.start_change()
+            if request["fcn"] == "queue_eta":
+                self.socket.send_json(self.eta())
+            elif request["fcn"] == "set_mode":
+                self.socket.send_json(self.set_mode(request))
+            self.drone_thread.stop_change()
 
     def get_info(self):
         """Returns info on connected drones, for now"""
@@ -188,6 +204,21 @@ class IMMRepThread(Thread):
     def stop(self):
         context.destroy()
         self.running = False
+
+    def set_mode(self, request):
+        self.drone_thread.set_mode(request["arg"]["mode"])
+        if request["arg"]["mode"] == "AUTO":
+            self.add_auto_images_to_queue() # So images will be sent continously.
+        return {"msg": "mode set"}
+
+    def add_auto_images_to_queue(self):
+        with session_scope() as session:
+            auto_images = session.query(Image).filter_by(mode="AUTO").all()
+            for image in auto_images:
+                self.drone_thread.add_image_to_queue(image)
+            i = 0
+
+
 
 
 
