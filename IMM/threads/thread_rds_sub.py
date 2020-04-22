@@ -80,6 +80,13 @@ def save_to_database(img_arg, new_pic, file_data):
         session.add(image)
 
 
+def match_image_to_tile(img_file_name):
+    # This function might be heavy work so maybe it should run in a worker thread.
+
+    with session_scope() as session:
+        image = session.query(Image).filter_by(file_name=img_file_name).first()
+
+    i=0
 
 
 
@@ -95,6 +102,7 @@ class RDSSubThread(Thread):
     def recv_image_array(self, metadata, flags=0, copy=True, track=False):
         """Receives and returns the image converted to a numpy array"""
         msg = self.RDS_sub_socket.recv(flags=flags, copy=copy, track=track)
+        self.RDS_sub_socket.send_json(json.dumps({"msg": "ack"}))
         buf = memoryview(msg)
         image_array = numpy.frombuffer(buf, dtype=metadata["dtype"])
         return image_array.reshape(metadata["shape"])
@@ -102,22 +110,23 @@ class RDSSubThread(Thread):
     def run(self):
         while self.running:
             try:
-                request = self.RDS_sub_socket.recv_json(flags=0)
+                request = self.RDS_sub_socket.recv_json()
                 check_request(request)
                 if "image_md" in request:
                     # We have a new image
                     new_pic = self.recv_image_array(request["image_md"])
                     img_file_data = save_image(new_pic)
                     save_to_database(request["arg"], new_pic, img_file_data)
-                    self.new_pic_notify_gui()
-                self.RDS_sub_socket.send_json(json.dumps({"msg": "ack"}))
+                    tile_image = match_image_to_tile(img_file_data[1])
+                    self.send_tile_to_gui(tile_image)
 
             except:
-                pass
+                raise
 
-    def new_pic_notify_gui(self):
-        """Run thread_gui_pub"""
+    def send_tile_to_gui(self, tile_image):
+        """Send tile image to gui"""
 
+        # Not sure how we should pass the image tile yet, code below is work in progress
         msg = {"fcn": "new_pic", "arg": {"image_id": 1}}  # This notify message will change later
         request = {"IMM_fcn": "send_to_gui", "arg": msg}
 

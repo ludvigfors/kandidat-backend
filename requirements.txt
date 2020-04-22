@@ -1,0 +1,6 @@
+flask
+numpy==1.18.2
+Pillow==7.1.1
+Pillow-PIL==0.1.dev0
+pyzmq==19.0.0
+SQLAlchemy==1.3.14

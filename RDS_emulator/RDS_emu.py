@@ -20,7 +20,7 @@ class DroneThread(Thread):
     def __init__(self):
         super().__init__()
         self.image_queue = []
-        self.FLYING_TIME = 3
+        self.FLYING_TIME = 1
         self.count = 0
         self.new_image = False
         self.running = True
@@ -87,7 +87,7 @@ class IMMPubThread(Thread):
             if self.drone_thread.new_image:
                 self.new_pic(self.drone_thread.pop_first_image())
                 response = self.socket.recv_json()
-                # print(response)
+                print(response)
         i = 0
 
     def new_pic(self, image):
